@@ -7,6 +7,8 @@ set -e
 
 DRY_RUN=false
 ASSUME_YES=false
+AUTO_BACKUP=false
+OVERWRITE=false
 SKIP_KEY_PROMPT=false
 
 # Parse flags
@@ -18,6 +20,14 @@ for arg in "$@"; do
       ;;
     --yes|-y|--assume-yes)
       ASSUME_YES=true
+      shift
+      ;;
+    --auto-backup)
+      AUTO_BACKUP=true
+      shift
+      ;;
+    --overwrite)
+      OVERWRITE=true
       shift
       ;;
     --skip-key-prompt)
@@ -62,6 +72,66 @@ ask_approval() {
   esac
 }
 
+backup_file() {
+  local file_path="$1"
+  local desc="$2"
+  local is_secret="${3:-false}"
+  
+  if [ ! -f "$file_path" ]; then return 0; fi
+  
+  local timestamp=$(date +%Y%m%d_%H%M%S)
+  local bak_path="${file_path}.bak.${timestamp}"
+  
+  cp "$file_path" "$bak_path"
+  if [ "$is_secret" = true ]; then
+    chmod 600 "$bak_path"
+  fi
+  echo -e " ${GREEN}[OK]${NC} Backup created for $desc -> $bak_path"
+}
+
+prompt_file_action() {
+  local file_path="$1"
+  local desc="$2"
+  
+  if [ ! -f "$file_path" ]; then
+    echo "write"
+    return 0
+  fi
+  
+  if [ "$AUTO_BACKUP" = true ]; then
+    echo "backup_and_update"
+    return 0
+  fi
+  
+  if [ "$OVERWRITE" = true ]; then
+    echo "overwrite"
+    return 0
+  fi
+  
+  if [ "$ASSUME_YES" = true ]; then
+    echo "backup_and_update"
+    return 0
+  fi
+  
+  echo -e "\n ${YELLOW}[!] Existing $desc detected at $file_path${NC}" >&2
+  echo -e "     ${CYAN}[1] Auto-Backup and Update (Recommended - creates a timestamped .bak file)${NC}" >&2
+  echo -e "     ${YELLOW}[2] Overwrite in-place (no backup file)${NC}" >&2
+  echo -e "     ${WHITE}[3] Skip modifying this file${NC}" >&2
+  read -p "     Select option [1/2/3] (Default: 1): " choice >&2
+  
+  case "$choice" in
+    2)
+      echo "overwrite"
+      ;;
+    3)
+      echo "skip"
+      ;;
+    *)
+      echo "backup_and_update"
+      ;;
+  esac
+}
+
 echo -e "${CYAN}=================================================================${NC}"
 echo -e "${WHITE}  IBM Codex + IBM Consulting Advantage (ICA) Setup Tool${NC}"
 echo -e "${CYAN}  macOS / Linux Edition with Dry-Run Preview & Explicit Confirmation${NC}"
@@ -100,6 +170,11 @@ has_config=false; [ -f "$CONFIG_FILE" ] && has_config=true
 has_env=false; [ -f "$ENV_FILE" ] && has_env=true
 has_testdir=false; [ -d "$TEST_DIR" ] && has_testdir=true
 
+has_chatgpt_app=false
+if [ -d "/Applications/ChatGPT.app" ] || [ -d "$HOME/Applications/ChatGPT.app" ]; then
+    has_chatgpt_app=true
+fi
+
 # 2. Planned Actions Summary (PREVIEW / DRY-RUN)
 echo -e "\n${YELLOW}+---------------------------------------------------------------+${NC}"
 echo -e "${YELLOW}|                 PLANNED ACTIONS PREVIEW                       |${NC}"
@@ -111,18 +186,23 @@ echo -e "    - Test Workspace Folder: $TEST_DIR $([ "$has_testdir" = true ] && e
 
 echo -e "\n${WHITE} 2. Configuration Files:${NC}"
 echo -e "    - Model Catalog ($CATALOG_JSON_FILE):"
-echo -e "      Will write 6 ICA models (gpt-advantage-assist, gpt-5.6-sol, etc.) in UTF-8."
+echo -e "      Will write 6 ICA models (gpt-advantage-assist, gpt-5.6-sol, etc.) in UTF-8.$([ "$has_catalog" = true ] && echo ' [Auto-Backup offered]')"
 echo -e "    - Codex Config ($CONFIG_FILE):"
-echo -e "      Will $([ "$has_config" = true ] && echo 'merge with existing config' || echo 'create new config') placing top-level ICA settings at top."
+echo -e "      Will $([ "$has_config" = true ] && echo 'merge with existing config [Auto-Backup offered]' || echo 'create new config') placing top-level ICA settings at top."
 
 echo -e "\n${WHITE} 3. Secret & Environment Management:${NC}"
-echo -e "    - Secret File : $ENV_FILE (Will store ICA_API_KEY with chmod 600 permissions)"
+echo -e "    - Secret File : $ENV_FILE (Will store ICA_API_KEY with chmod 600 permissions$([ "$has_env" = true ] && echo ', Auto-Backup offered'))"
 
 echo -e "\n${WHITE} 4. Process & Package Management:${NC}"
 if ! command -v codex >/dev/null 2>&1; then
     echo -e "    - Software    : Will offer to install @openai/codex globally via npm"
 else
     echo -e "    - Software    : Codex CLI already installed"
+fi
+if [ "$has_chatgpt_app" = true ]; then
+    echo -e "    - ChatGPT App : Desktop app detected (Will inherit ICA config automatically)"
+else
+    echo -e "    - ChatGPT App : Not installed (Will offer optional install via brew)"
 fi
 echo -e "${YELLOW}+---------------------------------------------------------------+${NC}\n"
 
@@ -166,6 +246,14 @@ if ! command -v codex >/dev/null 2>&1; then
             npm install -g @openai/codex
             export PATH="$(npm config get prefix)/bin:$PATH"
         fi
+    fi
+fi
+
+# 4b. Optional ChatGPT Desktop App Installation via brew
+if [ "$has_chatgpt_app" = false ] && command -v brew >/dev/null 2>&1; then
+    if ask_approval "Would you like to install the official ChatGPT Desktop App via brew?" false; then
+        echo "Running: brew install --cask chatgpt"
+        brew install --cask chatgpt || echo -e " ${YELLOW}[WARN]${NC} brew install failed. You can install manually from https://chatgpt.com/download/ if permitted by IBM policy."
     fi
 fi
 
@@ -401,46 +489,321 @@ cat << 'EOF' > "$CATALOG_JSON_FILE"
 }
 EOF
 
-if command -v python3 >/dev/null 2>&1; then
-    python3 -m json.tool "$CATALOG_JSON_FILE" >/dev/null && echo -e " ${GREEN}[OK]${NC} ica-models.json is valid JSON."
+# 6. Write ica-models.json
+echo -e "\n${CYAN}[+] Configuring ICA Model Catalog (ica-models.json)...${NC}"
+catalog_action=$(prompt_file_action "$CATALOG_JSON_FILE" "model catalog (ica-models.json)")
+
+if [ "$catalog_action" = "backup_and_update" ]; then
+    backup_file "$CATALOG_JSON_FILE" "model catalog (ica-models.json)"
+fi
+
+if [ "$catalog_action" != "skip" ]; then
+    cat << 'EOF' > "$CATALOG_JSON_FILE"
+{
+  "models": [
+    {
+      "slug": "gpt-advantage-assist",
+      "display_name": "GPT Advantage Assist",
+      "description": "GPT Advantage Assist from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    },
+    {
+      "slug": "gpt-5.6-sol",
+      "display_name": "GPT-5.6 Sol",
+      "description": "GPT-5.6 Sol from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    },
+    {
+      "slug": "gpt-5.6-sol-pro",
+      "display_name": "GPT-5.6 Sol Pro",
+      "description": "GPT-5.6 Sol Pro from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    },
+    {
+      "slug": "gpt-5.6-terra",
+      "display_name": "GPT-5.6 Terra",
+      "description": "GPT-5.6 Terra from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    },
+    {
+      "slug": "gpt-5.4",
+      "display_name": "GPT-5.4",
+      "description": "GPT-5.4 from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    },
+    {
+      "slug": "gpt-5.1",
+      "display_name": "GPT-5.1",
+      "description": "GPT-5.1 from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    }
+  ]
+}
+EOF
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -m json.tool "$CATALOG_JSON_FILE" >/dev/null && echo -e " ${GREEN}[OK]${NC} ica-models.json is valid JSON."
+    fi
+else
+    echo -e " ${YELLOW}[WARN]${NC} Skipped modifying ica-models.json as requested."
 fi
 
 # 7. Configure config.toml
 echo -e "\n${CYAN}[+] Configuring config.toml...${NC}"
+config_action=$(prompt_file_action "$CONFIG_FILE" "Codex config (config.toml)")
 
-TOP_SETTINGS="model = \"gpt-advantage-assist\"\nmodel_provider = \"ica\"\nmodel_catalog_json = \"$CATALOG_JSON_FILE\"\nmodel_reasoning_effort = \"medium\""
-PROVIDER_SECTION="[model_providers.ica]\nname = \"ICA\"\nbase_url = \"https://api.servicesessentials.ibm.com/v1\"\nwire_api = \"responses\"\nenv_key = \"ICA_API_KEY\"\nrequires_openai_auth = false"
-
-if [[ -f "$CONFIG_FILE" ]]; then
-    grep -v -E '^(model|model_provider|model_catalog_json|model_reasoning_effort)[[:space:]]*=' "$CONFIG_FILE" | \
-    awk '/^\[model_providers\.ica\]/{flag=1;next}/^\[/{flag=0} !flag' > "$CONFIG_FILE.tmp" || true
-    
-    printf "%b\n\n" "$TOP_SETTINGS" > "$CONFIG_FILE"
-    cat "$CONFIG_FILE.tmp" >> "$CONFIG_FILE"
-    printf "\n%b\n" "$PROVIDER_SECTION" >> "$CONFIG_FILE"
-    rm -f "$CONFIG_FILE.tmp"
-else
-    printf "%b\n\n%b\n" "$TOP_SETTINGS" "$PROVIDER_SECTION" > "$CONFIG_FILE"
+if [ "$config_action" = "backup_and_update" ]; then
+    backup_file "$CONFIG_FILE" "config.toml"
 fi
 
-echo -e " ${GREEN}[OK]${NC} config.toml successfully written."
+if [ "$config_action" != "skip" ]; then
+    TOP_SETTINGS="model = \"gpt-advantage-assist\"\nmodel_provider = \"ica\"\nmodel_catalog_json = \"$CATALOG_JSON_FILE\"\nmodel_reasoning_effort = \"medium\""
+    PROVIDER_SECTION="[model_providers.ica]\nname = \"ICA\"\nbase_url = \"https://api.servicesessentials.ibm.com/v1\"\nwire_api = \"responses\"\nenv_key = \"ICA_API_KEY\"\nrequires_openai_auth = false"
+
+    if [[ -f "$CONFIG_FILE" ]]; then
+        grep -v -E '^(model|model_provider|model_catalog_json|model_reasoning_effort)[[:space:]]*=' "$CONFIG_FILE" | \
+        awk '/^\[model_providers\.ica\]/{flag=1;next}/^\[/{flag=0} !flag' > "$CONFIG_FILE.tmp" || true
+        
+        printf "%b\n\n" "$TOP_SETTINGS" > "$CONFIG_FILE"
+        cat "$CONFIG_FILE.tmp" >> "$CONFIG_FILE"
+        printf "\n%b\n" "$PROVIDER_SECTION" >> "$CONFIG_FILE"
+        rm -f "$CONFIG_FILE.tmp"
+    else
+        printf "%b\n\n%b\n" "$TOP_SETTINGS" "$PROVIDER_SECTION" > "$CONFIG_FILE"
+    fi
+    echo -e " ${GREEN}[OK]${NC} config.toml successfully updated."
+else
+    echo -e " ${YELLOW}[WARN]${NC} Skipped modifying config.toml as requested."
+fi
 
 # 8. Configure API Key
 echo -e "\n${CYAN}[+] Configuring ICA API Key (.env)...${NC}"
 api_key=""
+should_write_env=true
+
 if [[ -f "$ENV_FILE" ]]; then
     existing_key=$(grep -E '^ICA_API_KEY=' "$ENV_FILE" | cut -d '=' -f2- || true)
     if [[ -n "$existing_key" && "$existing_key" != "REPLACE_WITH_YOUR_NEW_CODEX_CODING_AGENT_KEY" ]]; then
         echo -e " ${GREEN}[OK]${NC} Existing ICA_API_KEY found in $ENV_FILE."
-        if ask_approval "Do you want to overwrite it with a new key?" false; then
-            api_key=""
-        else
+        if [ "$AUTO_BACKUP" = true ]; then
             api_key="$existing_key"
+            should_write_env=false
+            echo -e " ${GREEN}[OK]${NC} Retained active ICA_API_KEY."
+        elif [ "$OVERWRITE" = true ]; then
+            api_key=""
+        elif [ "$ASSUME_YES" = true ]; then
+            api_key="$existing_key"
+            should_write_env=false
+            echo -e " ${GREEN}[OK]${NC} Retained active ICA_API_KEY."
+        else
+            echo -e "\n ${YELLOW}[!] Existing .env secret file detected.${NC}"
+            echo -e "     ${CYAN}[1] Keep existing key (Recommended)${NC}"
+            echo -e "     ${CYAN}[2] Auto-Backup .env and enter a new key${NC}"
+            echo -e "     ${YELLOW}[3] Overwrite .env in-place with new key${NC}"
+            echo -e "     ${WHITE}[4] Skip secret configuration${NC}"
+            read -p "     Select option [1/2/3/4] (Default: 1): " key_choice
+            
+            case "$key_choice" in
+                2)
+                    backup_file "$ENV_FILE" ".env (secret)" true
+                    api_key=""
+                    ;;
+                3)
+                    api_key=""
+                    ;;
+                4)
+                    should_write_env=false
+                    ;;
+                *)
+                    api_key="$existing_key"
+                    should_write_env=false
+                    echo -e " ${GREEN}[OK]${NC} Retained active ICA_API_KEY."
+                    ;;
+            esac
         fi
     fi
 fi
 
-if [[ -z "$api_key" && "$SKIP_KEY_PROMPT" = false ]]; then
+if [[ "$should_write_env" = true && -z "$api_key" && "$SKIP_KEY_PROMPT" = false ]]; then
     echo -e "${YELLOW}To obtain your key:${NC}"
     echo " 1. Sign in to https://servicesessentials.ibm.com/"
     echo " 2. Select/Create your 2.0 team"
@@ -451,10 +814,12 @@ if [[ -z "$api_key" && "$SKIP_KEY_PROMPT" = false ]]; then
     echo ""
 fi
 
-if [[ -n "$api_key" ]]; then
+if [[ "$should_write_env" = true && -n "$api_key" ]]; then
     echo "ICA_API_KEY=$api_key" > "$ENV_FILE"
     chmod 600 "$ENV_FILE"
     echo -e " ${GREEN}[OK]${NC} Saved API key to $ENV_FILE with chmod 600 permissions."
+elif [ "$should_write_env" = false ]; then
+    echo -e " ${GREEN}[OK]${NC} .env file retained untouched."
 else
     echo -e " ${YELLOW}[WARN]${NC} No API key entered. You can add it manually to $ENV_FILE."
 fi

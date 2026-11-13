@@ -31,21 +31,43 @@ Inspect planned changes, file diffs, and directory creations before executing:
 
 ---
 
-### 2. Run Automated Installation (With Interactive User Confirmation)
+### 2. Run Automated Installation (With Auto-Backup & Overwrite Options)
 The script provides a clear action preview and requires your explicit confirmation before applying changes, storing credentials, or terminating daemon processes:
 
 - **Windows (PowerShell)**:
   ```powershell
+  # Interactive mode with Auto-Backup & Overwrite prompts for existing files:
   powershell -ExecutionPolicy Bypass -File .\setup-codex-ica.ps1
+
+  # Force automatic timestamped backups without prompting:
+  powershell -ExecutionPolicy Bypass -File .\setup-codex-ica.ps1 -AutoBackup
+
+  # Force direct overwrite without creating backup files:
+  powershell -ExecutionPolicy Bypass -File .\setup-codex-ica.ps1 -Overwrite
   ```
   *(To bypass interactive confirmation in automated CI workflows, use `-Yes`)*
 
 - **macOS (Terminal)**:
   ```bash
+  # Interactive mode with Auto-Backup & Overwrite prompts for existing files:
   chmod +x setup-codex-ica.sh
   ./setup-codex-ica.sh
+
+  # Force automatic timestamped backups without prompting:
+  ./setup-codex-ica.sh --auto-backup
+
+  # Force direct overwrite without creating backup files:
+  ./setup-codex-ica.sh --overwrite
   ```
   *(To bypass interactive confirmation in automated CI workflows, use `--yes`)*
+
+---
+
+### 🛡️ Safe Backup & Overwrite Safeguards
+When existing files (`config.toml`, `.env`, `ica-models.json`) are detected, the tool offers three safe choices:
+1. **Auto-Backup and Update** *(Recommended)*: Creates a timestamped `.bak.YYYYMMDD_HHMMSS` copy (with NTFS owner-only or `chmod 600` permissions for `.env`) before updating.
+2. **Overwrite In-Place**: Directly replaces configuration without creating `.bak` files.
+3. **Keep Existing / Skip**: Retains existing file untouched.
 
 ---
 
@@ -58,60 +80,48 @@ For a guided, visual walkthrough tailored for non-technical users:
 
 ---
 
-## 🎯 Post-Installation Verification: 2-Step Roadmap
+## 🎯 Full 5-Step Setup & Verification Roadmap
 
-Once the setup script finishes, follow these two verification steps:
+The integration process consists of 5 clear stages:
 
-### Step 1: 30-Second Terminal Test (Confirm Connection)
+| Step | Stage | Description |
+|:---:|:---|:---|
+| **Step 1** | **Prerequisites** | Verify Node.js, npm, Git, Python, and install Codex CLI (`@openai/codex`). |
+| **Step 2** | **ICA 2.0 Portal** | Access Essentials Portal and generate a dedicated **Codex Coding Agent API Key**. |
+| **Step 3** | **Configuration** | Deploy `ica-models.json`, update `config.toml`, and store `ICA_API_KEY` securely. |
+| **Step 4** | **Client Setup** | Install VS Code Extension (`OpenAI.chatgpt`) and (optional) ChatGPT Desktop App. |
+| **Step 5** | **Verification & Testing** | Run the 30-second CLI test, VS Code `hello.py` test prompt, and desktop validation. |
+
+---
+
+### Step 5 Details: End-to-End Verification
+
+#### 5.1 30-Second Terminal Test (CLI)
 Open PowerShell or Terminal and run:
 ```powershell
 cd "$HOME\codex-ica-test"
 codex
 ```
-
-Inside the interactive Codex prompt:
-1. Type `/status` &rarr; verify that it shows:
-   - **`provider: ica`**
-   - **`model: gpt-advantage-assist`**
-2. Send the safe test prompt:
+1. Type `/status` &rarr; verify **`provider: ica`** and **`model: gpt-advantage-assist`**.
+2. Send safe test prompt:
    ```text
    Say hello in one sentence. Do not create or modify any files.
    ```
-   *(Expected response: `Hello!` directly from ICA)*
-3. Type `/exit` to close the CLI session.
+3. Type `/exit` to close.
 
----
-
-### Step 2: Daily Coding in Visual Studio Code
-1. Open **Visual Studio Code**.
-2. Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> (macOS: <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>) and install **Codex - OpenAI's coding agent** (`OpenAI.chatgpt`).
-3. Open your test folder (`C:\Users\<username>\codex-ica-test` or any project folder) via **File > Open Folder**.
-4. If prompted with Restricted Mode, select **"Trust this folder"**.
-5. Click the **Codex icon** in the left Activity Bar to open the chat panel.
-6. Run the coding verification prompt:
+#### 5.2 VS Code Coding Agent Validation
+1. Open **Visual Studio Code** on `~/codex-ica-test`.
+2. Open the **Codex icon** in the left Activity Bar.
+3. Run the coding verification prompt:
    ```text
    Create a Python program named hello.py that prints "IBM Codex ICA integration successful". Run the program, verify its output, and report the result. Do not modify any other files.
    ```
-7. Verify by running the generated program in your terminal:
-   ```powershell
-   python hello.py
-   ```
+4. Verify by running: `python hello.py`.
 
----
-
-### Step 3: (Optional) ChatGPT Desktop App Integration (Section 3 of Guide)
-Codex is built directly into the official ChatGPT Desktop application:
-1. **Download App**: Get the desktop app from [chatgpt.com/download](https://chatgpt.com/download/) (Windows installer or macOS Apple Silicon).
-2. **Credential Sharing**: The desktop app automatically reads the same `~/.codex/config.toml` and `ICA_API_KEY` configured in Section 1.
-3. **Restart App**: Fully quit the desktop app (<kbd>Cmd</kbd>+<kbd>Q</kbd> on Mac, or right-click system tray > Quit on Windows) and reopen it.
-4. **Account Separation Rules**:
-   - Keep your personal ChatGPT account separate from IBM work.
-   - Signing into ChatGPT with an IBM email is **not** the same as using an ICA API key.
-   - Keep full-access permissions turned off.
-5. **Verify**: Open a Codex conversation in the desktop app on your test workspace and send:
-   ```text
-   Say hello in one sentence. Do not create or modify any files.
-   ```
+#### 5.3 ChatGPT Desktop App Integration
+1. Open a Codex conversation in the desktop app on your `~/codex-ica-test` workspace.
+2. Send test prompt: `Say hello in one sentence. Do not create or modify any files.`
+3. A successful response confirms the desktop app is using ICA credentials.
 
 ---
 

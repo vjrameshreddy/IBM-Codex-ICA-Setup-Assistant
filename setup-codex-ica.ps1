@@ -9,6 +9,8 @@ param(
     [Alias("AssumeYes")]
     [switch]$Yes,
 
+    [switch]$AutoBackup,
+    [switch]$Overwrite,
     [switch]$SkipKeyPrompt,
     [switch]$NonInteractive
 )
@@ -60,6 +62,61 @@ function Ask-UserApproval {
     }
     
     return ($response.Trim().ToLower() -eq 'y' -or $response.Trim().ToLower() -eq 'yes')
+}
+
+function Backup-ConfigFile {
+    param(
+        [string]$Path,
+        [string]$Description,
+        [bool]$IsSecret = $false
+    )
+    if (-not (Test-Path $Path)) { return $null }
+    
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $bakFile = "$Path.bak.$timestamp"
+    try {
+        Copy-Item -Path $Path -Destination $bakFile -Force
+        if ($IsSecret) {
+            $currentUser = $env:USERNAME
+            & icacls "$bakFile" /inheritance:r /grant:r "${currentUser}:F" 2>$null | Out-Null
+        }
+        Write-Success "Backup created for $Description -> $bakFile"
+        return $bakFile
+    } catch {
+        Write-WarningMsg "Could not backup $Description`: $_"
+        return $null
+    }
+}
+
+function Prompt-FileAction {
+    param(
+        [string]$FilePath,
+        [string]$Description
+    )
+    if (-not (Test-Path $FilePath)) {
+        return "Write"
+    }
+    if ($AutoBackup) {
+        return "BackupAndUpdate"
+    }
+    if ($Overwrite) {
+        return "Overwrite"
+    }
+    if ($Yes -or $NonInteractive) {
+        return "BackupAndUpdate"
+    }
+    
+    Write-Host "`n [!] Existing $Description detected at $FilePath" -ForegroundColor Yellow
+    Write-Host "     [1] Auto-Backup and Update (Recommended - creates a timestamped .bak file)" -ForegroundColor Cyan
+    Write-Host "     [2] Overwrite in-place (no backup file)" -ForegroundColor DarkYellow
+    Write-Host "     [3] Skip modifying this file" -ForegroundColor DarkGray
+    $choice = Read-Host "     Select option [1/2/3] (Default: 1)"
+    
+    switch ($choice.Trim()) {
+        "2" { return "Overwrite" }
+        "3" { return "Skip" }
+        Default { return "BackupAndUpdate" }
+    }
 }
 
 Clear-Host
@@ -123,11 +180,18 @@ try {
     $RunningDaemons = Get-Process -Name 'codex', 'node_repl' -ErrorAction SilentlyContinue
 } catch {}
 
-# Check existing configuration files
+# Check existing configuration files & ChatGPT desktop installation
 $HasCatalog = Test-Path $CatalogJsonFile
 $HasConfig = Test-Path $ConfigFile
 $HasEnv = Test-Path $EnvFile
 $HasTestDir = Test-Path $TestDir
+
+$HasChatGPTDesktop = $false
+if (Test-Path "$env:LOCALAPPDATA\Programs\ChatGPT\ChatGPT.exe") {
+    $HasChatGPTDesktop = $true
+} elseif (Test-Path "$env:ProgramFiles\ChatGPT\ChatGPT.exe") {
+    $HasChatGPTDesktop = $true
+}
 
 # 3. Model Catalog Definition (Pure RFC 8259 JSON)
 $ModelCatalogContent = @'
@@ -408,12 +472,12 @@ Write-Host "    - Test Workspace Folder: $TestDir $(if ($HasTestDir) { '[Exists]
 
 Write-Host "`n 2. Configuration Files:" -ForegroundColor White
 Write-Host "    - Model Catalog ($CatalogJsonFile):" -ForegroundColor Gray
-Write-Host "      Will write 6 ICA models (gpt-advantage-assist, gpt-5.6-sol, etc.) in UTF-8 without BOM." -ForegroundColor DarkGray
+Write-Host "      Will write 6 ICA models (gpt-advantage-assist, gpt-5.6-sol, etc.) in UTF-8 without BOM.$(if ($HasCatalog) { ' [Auto-Backup offered]' })" -ForegroundColor DarkGray
 Write-Host "    - Codex Config ($ConfigFile):" -ForegroundColor Gray
-Write-Host "      Will $(if ($HasConfig) { 'merge with existing config' } else { 'create new config' }) placing top-level ICA settings at top." -ForegroundColor DarkGray
+Write-Host "      Will $(if ($HasConfig) { 'merge with existing config [Auto-Backup offered]' } else { 'create new config' }) placing top-level ICA settings at top." -ForegroundColor DarkGray
 
 Write-Host "`n 3. Secret & Environment Management:" -ForegroundColor White
-Write-Host "    - Secret File : $EnvFile (Will store ICA_API_KEY with owner-only NTFS permissions)" -ForegroundColor Gray
+Write-Host "    - Secret File : $EnvFile (Will store ICA_API_KEY with owner-only NTFS permissions$(if ($HasEnv) { ', Auto-Backup offered' }))" -ForegroundColor Gray
 Write-Host "    - Environment : Will register ICA_API_KEY in Windows User Environment variables" -ForegroundColor Gray
 
 Write-Host "`n 4. Process & Extension Management:" -ForegroundColor White
@@ -421,6 +485,11 @@ if (-not $CodexVer) {
     Write-Host "    - Software    : Will offer to install @openai/codex globally via npm" -ForegroundColor Yellow
 } else {
     Write-Host "    - Software    : Codex CLI already installed ($CodexVer)" -ForegroundColor Gray
+}
+if ($HasChatGPTDesktop) {
+    Write-Host "    - ChatGPT App : Desktop app detected (Will inherit ICA config automatically)" -ForegroundColor Gray
+} else {
+    Write-Host "    - ChatGPT App : Not installed (Will offer optional install via winget)" -ForegroundColor Gray
 }
 if ($RunningDaemons.Count -gt 0) {
     Write-Host "    - Daemons     : Will terminate $($RunningDaemons.Count) running codex/node_repl processes to reload environment" -ForegroundColor Yellow
@@ -473,6 +542,27 @@ if (-not $CodexVer) {
 }
 
 # ------------------------------------------------------------------------------
+# STEP 1b: Optional ChatGPT Desktop App Installation (with explicit confirmation)
+# ------------------------------------------------------------------------------
+if (-not $HasChatGPTDesktop -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+    $InstallDesktop = Ask-UserApproval "Would you like to install the official ChatGPT Desktop App via winget?" $false
+    if ($InstallDesktop) {
+        Write-Step "Installing ChatGPT Desktop App via winget..."
+        try {
+            & winget install --id OpenAI.ChatGPT -e --accept-package-agreements --accept-source-agreements
+            if ($LASTEXITCODE -eq 0) {
+                Write-Success "ChatGPT Desktop App installed successfully."
+                $HasChatGPTDesktop = $true
+            } else {
+                Write-WarningMsg "winget could not complete installation. You can install manually from https://chatgpt.com/download/ if permitted by IBM policy."
+            }
+        } catch {
+            Write-WarningMsg "Could not invoke winget: $_"
+        }
+    }
+}
+
+# ------------------------------------------------------------------------------
 # STEP 2: Create Directories
 # ------------------------------------------------------------------------------
 Write-Step "Creating directories..."
@@ -493,22 +583,37 @@ if (-not (Test-Path $TestDir)) {
 # ------------------------------------------------------------------------------
 # STEP 3: Write ica-models.json (RFC 8259 Pure UTF-8 without BOM)
 # ------------------------------------------------------------------------------
-Write-Step "Writing ICA Model Catalog (ica-models.json)..."
-[System.IO.File]::WriteAllText($CatalogJsonFile, $ModelCatalogContent, $Utf8NoBom)
-
-try {
-    $null = Get-Content $CatalogJsonFile -Raw | ConvertFrom-Json
-    Write-Success "ica-models.json created and validated successfully."
-} catch {
-    Write-ErrorMsg "Failed to validate generated ica-models.json: $_"
+Write-Step "Configuring ICA Model Catalog (ica-models.json)..."
+$catalogAction = Prompt-FileAction $CatalogJsonFile "model catalog (ica-models.json)"
+if ($catalogAction -eq "BackupAndUpdate") {
+    Backup-ConfigFile $CatalogJsonFile "model catalog (ica-models.json)"
+}
+if ($catalogAction -ne "Skip") {
+    [System.IO.File]::WriteAllText($CatalogJsonFile, $ModelCatalogContent, $Utf8NoBom)
+    try {
+        $null = Get-Content $CatalogJsonFile -Raw | ConvertFrom-Json
+        Write-Success "ica-models.json written and validated successfully."
+    } catch {
+        Write-ErrorMsg "Failed to validate generated ica-models.json: $_"
+    }
+} else {
+    Write-WarningMsg "Skipped modifying ica-models.json as requested."
 }
 
 # ------------------------------------------------------------------------------
 # STEP 4: Configure config.toml
 # ------------------------------------------------------------------------------
 Write-Step "Configuring config.toml..."
-[System.IO.File]::WriteAllText($ConfigFile, $FinalConfigContent, $Utf8NoBom)
-Write-Success "config.toml updated with ICA model provider and catalog path."
+$configAction = Prompt-FileAction $ConfigFile "Codex config (config.toml)"
+if ($configAction -eq "BackupAndUpdate") {
+    Backup-ConfigFile $ConfigFile "config.toml"
+}
+if ($configAction -ne "Skip") {
+    [System.IO.File]::WriteAllText($ConfigFile, $FinalConfigContent, $Utf8NoBom)
+    Write-Success "config.toml updated with ICA model provider and catalog path."
+} else {
+    Write-WarningMsg "Skipped modifying config.toml as requested."
+}
 
 # ------------------------------------------------------------------------------
 # STEP 5: Secure API Key Configuration
@@ -519,19 +624,48 @@ if ($SkipKeyPrompt) {
     Write-WarningMsg "Skipping API key prompt as requested."
 } else {
     $ApiKey = $null
+    $ShouldWriteEnv = $true
     
     if (Test-Path $EnvFile) {
         $ExistingEnv = Get-Content $EnvFile -Raw -ErrorAction SilentlyContinue
         if ($ExistingEnv -match 'ICA_API_KEY=\s*(\S+)' -and $Matches[1] -ne 'REPLACE_WITH_YOUR_NEW_CODEX_CODING_AGENT_KEY') {
             Write-Success "An existing ICA_API_KEY was found in $EnvFile."
-            $Overwrite = Ask-UserApproval "Do you want to overwrite it with a new key?" $false
-            if (-not $Overwrite) {
+            if ($AutoBackup) {
                 $ApiKey = $Matches[1]
+                $ShouldWriteEnv = $false
+                Write-Success "Retained active ICA_API_KEY."
+            } elseif ($Overwrite) {
+                $ApiKey = $null
+            } else {
+                Write-Host "`n [!] Existing .env secret file detected." -ForegroundColor Yellow
+                Write-Host "     [1] Keep existing key (Recommended)" -ForegroundColor Cyan
+                Write-Host "     [2] Auto-Backup .env and enter a new key" -ForegroundColor DarkCyan
+                Write-Host "     [3] Overwrite .env in-place with new key" -ForegroundColor DarkYellow
+                Write-Host "     [4] Skip secret configuration" -ForegroundColor DarkGray
+                $keyChoice = Read-Host "     Select option [1/2/3/4] (Default: 1)"
+                
+                switch ($keyChoice.Trim()) {
+                    "2" {
+                        Backup-ConfigFile $EnvFile ".env (secret)" -IsSecret $true
+                        $ApiKey = $null
+                    }
+                    "3" {
+                        $ApiKey = $null
+                    }
+                    "4" {
+                        $ShouldWriteEnv = $false
+                    }
+                    Default {
+                        $ApiKey = $Matches[1]
+                        $ShouldWriteEnv = $false
+                        Write-Success "Retained active ICA_API_KEY."
+                    }
+                }
             }
         }
     }
     
-    if (-not $ApiKey) {
+    if ($ShouldWriteEnv -and (-not $ApiKey)) {
         Write-Host "To obtain your Coding Agent API key:" -ForegroundColor Cyan
         Write-Host " 1. Sign in to https://servicesessentials.ibm.com/" -ForegroundColor Gray
         Write-Host " 2. Select/Create your 2.0 team (e.g. '<YourName> Codex Training')" -ForegroundColor Gray
@@ -547,25 +681,29 @@ if ($SkipKeyPrompt) {
         }
     }
     
-    if (-not [string]::IsNullOrWhiteSpace($ApiKey)) {
+    if ($ShouldWriteEnv -and (-not [string]::IsNullOrWhiteSpace($ApiKey))) {
         $EnvContent = "ICA_API_KEY=$ApiKey`r`n"
         [System.IO.File]::WriteAllText($EnvFile, $EnvContent, $Utf8NoBom)
         
         # Apply strict NTFS owner-only permissions
         try {
             $currentUser = $env:USERNAME
-            & icacls "$EnvFile" /inheritance:r /grant:r "${currentUser}:F" | Out-Null
+            & icacls "$EnvFile" /inheritance:r /grant:r "${currentUser}:F" 2>$null | Out-Null
             Write-Success ".env file created with strict user-only permissions."
         } catch {
             Write-WarningMsg "Could not set icacls permissions on .env file: $_"
         }
-        
-        # Set for current PowerShell session & persistent User Environment Variable
+    }
+    
+    # Set for current PowerShell session & persistent User Environment Variable if key exists
+    if (-not [string]::IsNullOrWhiteSpace($ApiKey)) {
         $env:ICA_API_KEY = $ApiKey
         try {
             [System.Environment]::SetEnvironmentVariable('ICA_API_KEY', $ApiKey, 'User')
             Write-Success "Registered ICA_API_KEY user environment variable for VS Code and GUI apps."
         } catch {}
+    } elseif (-not $ShouldWriteEnv) {
+        Write-Success ".env retained untouched."
     } else {
         Write-WarningMsg "No API key was entered. You will need to manually configure $EnvFile later."
     }

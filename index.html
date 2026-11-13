@@ -781,27 +781,30 @@
 
     <!-- Navigation Tabs -->
     <div class="nav-tabs">
-      <button class="nav-tab active" onclick="switchTab('auto')">⚡ 1-Click Automated Setup</button>
+      <button class="nav-tab active" onclick="switchTab('auto')">⚡ Fast-Track: Automated Setup</button>
       <button class="nav-tab" onclick="switchTab('prereqs')">📋 Step 1: Pre-requisites</button>
-      <button class="nav-tab" onclick="switchTab('portal')">🔑 Step 2: ICA Portal & API Key</button>
-      <button class="nav-tab" onclick="switchTab('manual')">🛠️ Step 3: Manual Config</button>
-      <button class="nav-tab" onclick="switchTab('clients')">💻 Step 4: VS Code & Desktop</button>
-      <button class="nav-tab" onclick="switchTab('troubleshoot')">❓ Diagnostic & FAQ</button>
+      <button class="nav-tab" onclick="switchTab('portal')">🔑 Step 2: ICA Portal &amp; Key</button>
+      <button class="nav-tab" onclick="switchTab('manual')">🛠️ Step 3: Configuration</button>
+      <button class="nav-tab" onclick="switchTab('clients')">💻 Step 4: VS Code &amp; Desktop</button>
+      <button class="nav-tab" onclick="switchTab('testing')">🧪 Step 5: Verification &amp; Testing</button>
+      <button class="nav-tab" onclick="switchTab('troubleshoot')">❓ Diagnostic &amp; FAQ</button>
     </div>
 
     <!-- TAB 1: 1-Click Automated Setup -->
     <div id="tab-auto" class="tab-content active">
       <div class="card">
         <div class="step-header">
-          <input type="checkbox" class="step-check" id="check-auto" onchange="updateProgress()">
           <div class="step-title-wrap">
             <h2 class="card-title">
               <span class="step-num">Auto</span> Fast-Track: Automated Script Setup
             </h2>
             <p class="card-subtitle">
-              We have provided ready-to-run automation scripts for both Windows and macOS that automatically create all configuration files, set model catalogs, prompt securely for your key, and verify permissions.
+              Run our automated setup script to automatically configure all 5 steps (Directories, Models Catalog, TOML Config, Secret API Key, and Background Daemons).
             </p>
           </div>
+          <button class="btn" style="padding: 6px 14px; font-size: 0.85rem;" onclick="markAllComplete()">
+            ✓ Mark All 5 Steps Done (100%)
+          </button>
         </div>
 
         <div class="callout success">
@@ -833,19 +836,28 @@
           </div>
         </div>
 
-        <h3 style="margin: 22px 0 10px; font-size: 1.1rem; color: #fff;">Option B: Run Automated Installation (With Interactive Confirmation)</h3>
+        <h3 style="margin: 22px 0 10px; font-size: 1.1rem; color: #fff;">Option B: Run Automated Installation (With Auto-Backup &amp; Overwrite Options)</h3>
         <p style="font-size:0.92rem; color: var(--text-muted); margin-bottom: 8px;">
-          Displays the planned actions summary and asks for your explicit approval before applying each change:
+          Displays the planned actions summary and provides options to auto-backup existing configurations or overwrite:
         </p>
         
         <div class="os-win">
           <p style="font-size:0.95rem; margin-bottom:8px;">Open <strong>PowerShell</strong> as your normal user and paste:</p>
           <div class="code-container">
             <div class="code-header">
-              <span>PowerShell</span>
+              <span>PowerShell (Interactive Prompts)</span>
               <button class="copy-btn" onclick="copyCode('ps1-cmd')">📋 Copy Command</button>
             </div>
             <pre id="ps1-cmd">powershell -ExecutionPolicy Bypass -File .\setup-codex-ica.ps1</pre>
+          </div>
+          
+          <p style="font-size:0.88rem; color: var(--text-muted); margin: 6px 0 4px;">Or use automated backup flags:</p>
+          <div class="code-container">
+            <div class="code-header">
+              <span>PowerShell (Force Auto-Backup)</span>
+              <button class="copy-btn" onclick="copyCode('ps1-bak-cmd')">📋 Copy Command</button>
+            </div>
+            <pre id="ps1-bak-cmd">powershell -ExecutionPolicy Bypass -File .\setup-codex-ica.ps1 -AutoBackup</pre>
           </div>
         </div>
 
@@ -853,11 +865,29 @@
           <p style="font-size:0.95rem; margin-bottom:8px;">Open <strong>Terminal</strong> (zsh) and paste:</p>
           <div class="code-container">
             <div class="code-header">
-              <span>Terminal (Zsh)</span>
+              <span>Terminal (Zsh Interactive)</span>
               <button class="copy-btn" onclick="copyCode('sh-cmd')">📋 Copy Command</button>
             </div>
             <pre id="sh-cmd">chmod +x setup-codex-ica.sh && ./setup-codex-ica.sh</pre>
           </div>
+
+          <p style="font-size:0.88rem; color: var(--text-muted); margin: 6px 0 4px;">Or use automated backup flags:</p>
+          <div class="code-container">
+            <div class="code-header">
+              <span>Terminal (Force Auto-Backup)</span>
+              <button class="copy-btn" onclick="copyCode('sh-bak-cmd')">📋 Copy Command</button>
+            </div>
+            <pre id="sh-bak-cmd">./setup-codex-ica.sh --auto-backup</pre>
+          </div>
+        </div>
+
+        <div class="callout" style="border-left-color: #8a3ffc; background: rgba(138, 63, 252, 0.08);">
+          <strong style="color: #be95ff;">🛡️ Existing Configuration Safeguards:</strong>
+          <ul style="margin: 6px 0 0 18px; font-size: 0.9rem; line-height: 1.5;">
+            <li><strong>Auto-Backup &amp; Update:</strong> Creates timestamped <code>.bak.YYYYMMDD_HHMMSS</code> copies of <code>config.toml</code>, <code>.env</code>, and <code>ica-models.json</code>.</li>
+            <li><strong>Secret Protection:</strong> Backup <code>.env</code> files automatically inherit strict user-only permissions (NTFS owner-only on Windows, <code>chmod 600</code> on Mac).</li>
+            <li><strong>Overwrite In-Place:</strong> Overwrites files directly when chosen or when passing <code>-Overwrite</code> / <code>--overwrite</code>.</li>
+          </ul>
         </div>
 
         <h3 style="margin: 24px 0 10px; font-size: 1.1rem; color: #fff;">Option C: Download Standalone Setup Script</h3>
@@ -880,59 +910,116 @@
 
         <hr style="border: 0; border-top: 1px solid var(--border); margin: 28px 0 20px;">
 
-        <!-- Crystal Clear Post-Setup Roadmap -->
+        <!-- End-to-End Verification & Testing Roadmap for Automated Setup -->
         <h2 style="font-size: 1.3rem; color: #56c8ff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-          🎯 What To Do Next: Your 2-Step Roadmap
+          🎯 Fast-Track: End-to-End Verification &amp; Testing Roadmap
         </h2>
         <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 16px;">
-          Once the automated script reports <em>"Completed Successfully"</em>, follow these 2 simple steps:
+          Once the automated script reports <em>"Setup Completed Successfully"</em>, complete these 3 verification stages across Terminal CLI, VS Code, and Desktop App:
         </p>
 
-        <!-- Phase 1 -->
+        <!-- Stage 1: 30-Second Terminal Test -->
         <div style="background: rgba(15, 98, 254, 0.08); border: 1px solid var(--ibm-blue-60); border-radius: 8px; padding: 18px; margin-bottom: 18px;">
           <h3 style="font-size: 1.05rem; color: #ffffff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
             <span style="background: var(--ibm-blue-60); color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">1</span>
-            Step 1: Test the Connection in Terminal (Takes 30 seconds)
+            Stage 1: 30-Second Terminal Test (Codex CLI)
           </h3>
           <p style="font-size: 0.92rem; color: var(--text-muted); margin-bottom: 10px;">
-            Run these commands to confirm your terminal is talking to IBM Consulting Advantage:
+            Launch Codex in the verified test directory to confirm communication with IBM Consulting Advantage:
           </p>
           
           <div class="code-container">
             <div class="code-header">
               <span><span class="os-win">PowerShell</span><span class="os-mac">Terminal</span></span>
-              <button class="copy-btn" onclick="copyCode('post-test-cmds')">📋 Copy</button>
+              <button class="copy-btn" onclick="copyCode('auto-post-test-cmds')">📋 Copy Command</button>
             </div>
-            <pre id="post-test-cmds" class="os-win">cd "$HOME\codex-ica-test"
+            <pre id="auto-post-test-cmds" class="os-win">cd "$HOME\codex-ica-test"
 codex</pre>
-            <pre id="post-test-cmds-mac" class="os-mac" style="display:none;">cd "$HOME/codex-ica-test"
+            <pre id="auto-post-test-cmds-mac" class="os-mac" style="display:none;">cd "$HOME/codex-ica-test"
 codex</pre>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; margin-top: 10px;">
-            <div>• Inside Codex, type <code>/status</code> &rarr; verify it says <strong>provider: ica</strong> and <strong>model: gpt-advantage-assist</strong>.</div>
-            <div>• Send the test prompt: <code>Say hello in one sentence. Do not create or modify any files.</code></div>
-            <div>• Type <code>/exit</code> to quit when done.</div>
+          <p style="font-size: 0.92rem; margin: 10px 0 6px;">Inside Codex, check status:</p>
+          <div class="callout success" style="margin: 8px 0;">
+            <strong>Expected /status Output:</strong><br>
+            • <strong>provider:</strong> <code>ica</code><br>
+            • <strong>model:</strong> <code>gpt-advantage-assist</code>
           </div>
+
+          <p style="font-size: 0.92rem; margin-top: 10px;">Send safe test prompt:</p>
+          <div class="code-container">
+            <div class="code-header">
+              <span>CLI Test Prompt</span>
+              <button class="copy-btn" onclick="copyCode('auto-prompt-1')">📋 Copy Prompt</button>
+            </div>
+            <pre id="auto-prompt-1">Say hello in one sentence. Do not create or modify any files.</pre>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">
+            Expected Output: <code>Hello!</code> directly from the ICA backend. Type <code>/exit</code> to quit.
+          </p>
         </div>
 
-        <!-- Phase 2 -->
-        <div style="background: rgba(36, 161, 72, 0.08); border: 1px solid var(--ibm-green); border-radius: 8px; padding: 18px;">
+        <!-- Stage 2: VS Code Coding Agent Validation -->
+        <div style="background: rgba(36, 161, 72, 0.08); border: 1px solid var(--ibm-green); border-radius: 8px; padding: 18px; margin-bottom: 18px;">
           <h3 style="font-size: 1.05rem; color: #ffffff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
             <span style="background: var(--ibm-green); color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">2</span>
-            Step 2: Start Daily Coding in Visual Studio Code
+            Stage 2: VS Code Extension Coding Validation
           </h3>
           <p style="font-size: 0.92rem; color: var(--text-muted); margin-bottom: 12px;">
-            This is where you will actually write code, build apps, and debug with Codex:
+            Test code generation, file creation, and execution capabilities inside Visual Studio Code:
           </p>
 
           <ol style="margin-left: 20px; font-size: 0.92rem; display: flex; flex-direction: column; gap: 8px;">
             <li>Open <strong>Visual Studio Code</strong>.</li>
             <li>Press <span class="tag-hotkey"><span class="os-win">Ctrl+Shift+X</span><span class="os-mac">Cmd+Shift+X</span></span>, search for <code>Codex</code>, and install <strong>"Codex - OpenAI's coding agent"</strong> (ID: <code>OpenAI.chatgpt</code>).</li>
-            <li>Go to <strong>File &gt; Open Folder</strong> and open your project folder (or <code>codex-ica-test</code>). Click <strong>"Trust this folder"</strong>.</li>
-            <li>Click the <strong>Codex icon</strong> in the left sidebar to open the chat panel.</li>
-            <li>Ask Codex to write code, review files, create tests, or debug errors!</li>
+            <li>Go to <strong>File &gt; Open Folder</strong> and open <code>~/codex-ica-test</code> (<span class="os-win"><code>C:\Users\&lt;user&gt;\codex-ica-test</code></span>). Click <strong>"Trust this folder"</strong>.</li>
+            <li>Click the <strong>Codex icon</strong> in the left sidebar and send the validation prompt:</li>
           </ol>
+
+          <div class="code-container" style="margin-top: 10px;">
+            <div class="code-header">
+              <span>Coding Validation Prompt</span>
+              <button class="copy-btn" onclick="copyCode('auto-prompt-code')">📋 Copy Prompt</button>
+            </div>
+            <pre id="auto-prompt-code">Create a Python program named hello.py that prints "IBM Codex ICA integration successful". Run the program, verify its output, and report the result. Do not modify any other files.</pre>
+          </div>
+
+          <p style="font-size: 0.92rem; margin-top: 10px;">Verify output in your terminal:</p>
+          <div class="code-container">
+            <div class="code-header">
+              <span>Terminal</span>
+              <button class="copy-btn" onclick="copyCode('auto-test-py-cmd')">📋 Copy Command</button>
+            </div>
+            <pre id="auto-test-py-cmd">python hello.py</pre>
+          </div>
+        </div>
+
+        <!-- Stage 3: ChatGPT Desktop App Verification -->
+        <div style="background: rgba(138, 63, 252, 0.08); border: 1px solid #8a3ffc; border-radius: 8px; padding: 18px;">
+          <h3 style="font-size: 1.05rem; color: #ffffff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+            <span style="background: #8a3ffc; color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">3</span>
+            Stage 3: ChatGPT Desktop App Verification (Optional)
+          </h3>
+          <p style="font-size: 0.92rem; color: var(--text-muted); margin-bottom: 10px;">
+            If you use the official ChatGPT Desktop App, it shares the exact same <code>~/.codex/config.toml</code> and <code>ICA_API_KEY</code>:
+          </p>
+
+          <ol style="margin-left: 20px; font-size: 0.92rem; display: flex; flex-direction: column; gap: 8px;">
+            <li>Restart the desktop app (<span class="os-win">Quit from taskbar tray</span><span class="os-mac">Cmd+Q</span>).</li>
+            <li>Open a Codex chat session on workspace folder <code>~/codex-ica-test</code>.</li>
+            <li>Send the desktop test prompt:</li>
+          </ol>
+
+          <div class="code-container" style="margin-top: 10px;">
+            <div class="code-header">
+              <span>Desktop App Test Prompt</span>
+              <button class="copy-btn" onclick="copyCode('auto-prompt-desktop')">📋 Copy Prompt</button>
+            </div>
+            <pre id="auto-prompt-desktop">Say hello in one sentence. Do not create or modify any files.</pre>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">
+            A response without authentication errors confirms your ChatGPT Desktop App is properly linked to IBM Consulting Advantage!
+          </p>
         </div>
 
       </div>
@@ -1161,24 +1248,102 @@ codex --version</pre>
       </div>
     </div>
 
-    <!-- TAB 5: Clients & Testing -->
+    <!-- TAB 5: Step 4 - Clients Setup -->
     <div id="tab-clients" class="tab-content">
       <div class="card">
         <div class="step-header">
           <input type="checkbox" class="step-check" id="check-clients" onchange="updateProgress()">
           <div class="step-title-wrap">
             <h2 class="card-title">
-              <span class="step-num">Step 4</span> Verification: CLI, VS Code, and Desktop App
+              <span class="step-num">Step 4</span> Client Setup: VS Code Extension &amp; Desktop App
             </h2>
             <p class="card-subtitle">
-              Verify your setup in the Codex CLI and Visual Studio Code.
+              Install and connect your development clients (VS Code Extension and ChatGPT Desktop App).
             </p>
           </div>
         </div>
 
-        <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 10px;">4.1 Codex CLI Verification</h3>
+        <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 10px;">4.1 Visual Studio Code Extension Setup</h3>
+        <ol style="margin-left: 20px; font-size: 0.95rem; display: flex; flex-direction: column; gap: 10px;">
+          <li>Open VS Code (<span class="tag-hotkey"><span class="os-win">Ctrl+Shift+X</span><span class="os-mac">Cmd+Shift+X</span></span>) and search for <strong>Codex</strong>.</li>
+          <li>Install <strong>"Codex - OpenAI's coding agent"</strong> (Publisher: OpenAI, ID: <code>OpenAI.chatgpt</code>).</li>
+          <li>Open your test project folder: <code>~/codex-ica-test</code> (<span class="os-win"><code>C:\Users\&lt;user&gt;\codex-ica-test</code></span>) via <strong>File &gt; Open Folder</strong>.</li>
+          <li>When prompted with Restricted Mode, select <strong>"Trust this folder only"</strong>.</li>
+          <li>The Codex icon will appear in the left Activity Bar ready for use!</li>
+        </ol>
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0 20px;">
+
+        <!-- Section 3: ChatGPT Desktop App Integration -->
+        <h3 style="font-size: 1.15rem; color: #56c8ff; margin: 10px 0 10px; display: flex; align-items: center; gap: 8px;">
+          🖥️ 4.2 ChatGPT Desktop App Integration (Section 3 of Guide)
+        </h3>
+        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 12px;">
+          Codex is built directly into the official ChatGPT Desktop application. When installed, it automatically reads the same shared <code>.codex</code> folder and ICA credentials configured in Step 3.
+        </p>
+
+        <div class="callout security">
+          <strong>Crucial Security &amp; Account Boundaries (IBM Policy):</strong>
+          <ul style="margin: 6px 0 6px 20px; font-size: 0.92rem; color: #ffd875;">
+            <li><strong>Keep Personal Accounts Separate:</strong> The tested work setup is CLI + VS Code + ICA. Keep your personal ChatGPT account out of IBM work.</li>
+            <li><strong>Signing in vs API Key:</strong> Signing into ChatGPT with your IBM email is <em>not</em> the same as using an ICA API key. Do not sign into personal accounts to bypass authentication.</li>
+            <li><strong>Shared Folder Scope:</strong> Logging out of the desktop app does not separate settings, because the app reads the <code>.codex</code> folder. Keep full-access permissions turned off.</li>
+          </ul>
+        </div>
+
+        <ol style="margin-left: 20px; font-size: 0.95rem; display: flex; flex-direction: column; gap: 12px;">
+          <li>
+            <strong>Install the ChatGPT Desktop App:</strong>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
+              The automated script will offer to install this for you, or you can install via package manager:
+            </p>
+            <div class="code-container">
+              <div class="code-header">
+                <span><span class="os-win">PowerShell (winget)</span><span class="os-mac">Terminal (brew)</span></span>
+                <button class="copy-btn" onclick="copyCode('chatgpt-install-cmd')">📋 Copy</button>
+              </div>
+              <pre id="chatgpt-install-cmd" class="os-win">winget install --id OpenAI.ChatGPT -e</pre>
+              <pre id="chatgpt-install-cmd-mac" class="os-mac" style="display:none;">brew install --cask chatgpt</pre>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-dim);">
+              Manual installer: <a href="https://chatgpt.com/download/" target="_blank" style="color: #79c0ff;">https://chatgpt.com/download/</a>. Install only where approved by IBM policy.
+            </p>
+          </li>
+          <li>
+            <strong>Automatic Credential Inheritance:</strong>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
+              The desktop app automatically inherits <code>model_provider = "ica"</code> and <code>model = "gpt-advantage-assist"</code> directly from your <code>~/.codex/config.toml</code> and <code>.env</code> file.
+            </p>
+          </li>
+          <li>
+            <strong>Restart Desktop App:</strong>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
+              Fully quit the desktop app (<span class="os-win">right-click tray icon &gt; Quit</span><span class="os-mac">Cmd+Q</span>) and reopen it so it detects the updated configuration.
+            </p>
+          </li>
+        </ol>
+
+      </div>
+    </div>
+
+    <!-- TAB 6: Step 5 - Verification & Testing -->
+    <div id="tab-testing" class="tab-content">
+      <div class="card">
+        <div class="step-header">
+          <input type="checkbox" class="step-check" id="check-testing" onchange="updateProgress()">
+          <div class="step-title-wrap">
+            <h2 class="card-title">
+              <span class="step-num">Step 5</span> End-to-End Verification &amp; Testing Roadmap
+            </h2>
+            <p class="card-subtitle">
+              Validate your setup across Codex CLI, VS Code, and the Desktop App with standard verification prompts.
+            </p>
+          </div>
+        </div>
+
+        <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 10px;">5.1 30-Second Terminal Test (Codex CLI)</h3>
         <p style="font-size: 0.95rem; margin-bottom: 10px;">
-          Load the environment and start Codex in the test folder:
+          Open your terminal, navigate to the test workspace, and launch Codex:
         </p>
         <div class="code-container">
           <div class="code-header">
@@ -1206,84 +1371,54 @@ codex</pre>
         <p style="font-size: 0.95rem;">Send safe test prompt:</p>
         <div class="code-container">
           <div class="code-header">
-            <span>Test Prompt</span>
+            <span>CLI Test Prompt</span>
             <button class="copy-btn" onclick="copyCode('prompt-1')">📋 Copy</button>
           </div>
           <pre id="prompt-1">Say hello in one sentence. Do not create or modify any files.</pre>
         </div>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px;">
+          Expected Output: <code>Hello!</code> directly from the ICA backend.
+        </p>
 
-        <h3 style="font-size: 1.1rem; color: #fff; margin: 26px 0 10px;">4.2 VS Code Extension Setup</h3>
-        <ol style="margin-left: 20px; font-size: 0.95rem; display: flex; flex-direction: column; gap: 10px;">
-          <li>Open VS Code (<span class="tag-hotkey"><span class="os-win">Ctrl+Shift+X</span><span class="os-mac">Cmd+Shift+X</span></span>) and search for <strong>Codex</strong>.</li>
-          <li>Install <strong>"Codex - OpenAI's coding agent"</strong> (Publisher: OpenAI, ID: <code>OpenAI.chatgpt</code>).</li>
-          <li>Open folder: <code>~/codex-ica-test</code> (<span class="os-win"><code>C:\Users\&lt;user&gt;\codex-ica-test</code></span>).</li>
-          <li>Trust the folder when prompted (<strong>Trust this folder only</strong>).</li>
-          <li>Open the Codex tab in the sidebar and send the final coding test prompt:</li>
+        <h3 style="font-size: 1.1rem; color: #fff; margin: 24px 0 10px;">5.2 VS Code Coding Agent Validation</h3>
+        <ol style="margin-left: 20px; font-size: 0.95rem; display: flex; flex-direction: column; gap: 8px;">
+          <li>In VS Code, open the Codex panel in the sidebar on <code>~/codex-ica-test</code>.</li>
+          <li>Paste and run the following coding verification prompt:</li>
         </ol>
 
         <div class="code-container">
           <div class="code-header">
-            <span>Coding Verification Prompt</span>
+            <span>VS Code Coding Verification Prompt</span>
             <button class="copy-btn" onclick="copyCode('prompt-code')">📋 Copy</button>
           </div>
           <pre id="prompt-code">Create a Python program named hello.py that prints "IBM Codex ICA integration successful". Run the program, verify its output, and report the result. Do not modify any other files.</pre>
         </div>
 
-        <hr style="border: 0; border-top: 1px solid var(--border); margin: 28px 0 20px;">
-
-        <!-- Section 3: ChatGPT Desktop App Integration -->
-        <h3 style="font-size: 1.15rem; color: #56c8ff; margin: 10px 0 10px; display: flex; align-items: center; gap: 8px;">
-          🖥️ 4.3 ChatGPT Desktop App Integration (Section 3 of Guide)
-        </h3>
-        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 12px;">
-          Codex is built directly into the official ChatGPT Desktop application. When installed, it automatically reads the same shared <code>.codex</code> folder and ICA credentials configured in Section 1.
+        <p style="font-size: 0.95rem; margin-top: 10px;">
+          Verify manually by running the created script in your terminal:
         </p>
-
-        <div class="callout security">
-          <strong>Crucial Security & Account Boundaries (IBM Policy):</strong>
-          <ul style="margin: 6px 0 6px 20px; font-size: 0.92rem; color: #ffd875;">
-            <li><strong>Keep Personal Accounts Separate:</strong> The tested work setup is CLI + VS Code + ICA. Keep your personal ChatGPT account out of IBM work.</li>
-            <li><strong>Signing in vs API Key:</strong> Signing into ChatGPT with your IBM email is <em>not</em> the same as using an ICA API key. Do not sign into personal accounts to bypass authentication.</li>
-            <li><strong>Shared Folder Scope:</strong> Logging out of the desktop app does not separate settings, because the app reads the <code>.codex</code> folder. Keep full-access permissions turned off.</li>
-          </ul>
+        <div class="code-container">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn" onclick="copyCode('test-py-cmd')">📋 Copy</button>
+          </div>
+          <pre id="test-py-cmd">python hello.py</pre>
         </div>
 
-        <ol style="margin-left: 20px; font-size: 0.95rem; display: flex; flex-direction: column; gap: 12px;">
-          <li>
-            <strong>Install the ChatGPT Desktop App:</strong>
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
-              Download from <a href="https://chatgpt.com/download/" target="_blank" style="color: #79c0ff;">https://chatgpt.com/download/</a> (macOS: Apple Silicon build; Windows: Windows installer or Microsoft Store). Install only where IBM policy permits.
-            </p>
-          </li>
-          <li>
-            <strong>Automatic Credential Inheritance:</strong>
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
-              The desktop app reads <code>model_provider = "ica"</code> and <code>model = "gpt-advantage-assist"</code> directly from your <code>~/.codex/config.toml</code> and <code>.env</code> file (or User Environment Variable).
-            </p>
-          </li>
-          <li>
-            <strong>Restart Desktop App:</strong>
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
-              Fully quit the desktop app (<span class="os-win">right-click tray icon &gt; Quit, or check Task Manager</span><span class="os-mac">Cmd+Q</span>) and reopen it so it detects the updated configuration.
-            </p>
-          </li>
-          <li>
-            <strong>Verify in Desktop App:</strong>
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
-              Open a Codex chat in the desktop app on your test workspace folder (<code>~/codex-ica-test</code>) and send the safe verification prompt:
-            </p>
-            <div class="code-container">
-              <div class="code-header">
-                <span>Desktop App Test Prompt</span>
-                <button class="copy-btn" onclick="copyCode('prompt-desktop')">📋 Copy</button>
-              </div>
-              <pre id="prompt-desktop">Say hello in one sentence. Do not create or modify any files.</pre>
-            </div>
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
-              A reply without authentication errors confirms the desktop app has successfully linked to IBM Consulting Advantage!
-            </p>
-          </li>
-        </ol>
+        <h3 style="font-size: 1.1rem; color: #fff; margin: 24px 0 10px;">5.3 ChatGPT Desktop App Verification</h3>
+        <p style="font-size: 0.95rem; margin-bottom: 8px;">
+          Open a Codex chat in the desktop app on your test workspace folder (<code>~/codex-ica-test</code>) and send:
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <span>Desktop App Test Prompt</span>
+            <button class="copy-btn" onclick="copyCode('prompt-desktop')">📋 Copy</button>
+          </div>
+          <pre id="prompt-desktop">Say hello in one sentence. Do not create or modify any files.</pre>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">
+          A reply without authentication errors confirms the desktop app has successfully linked to IBM Consulting Advantage!
+        </p>
 
       </div>
     </div>
@@ -1593,6 +1728,18 @@ npm install -g @openai/codex</pre>
       if (document.getElementById('post-test-cmds-mac')) {
         document.getElementById('post-test-cmds-mac').style.display = isWin ? 'none' : 'block';
       }
+      if (document.getElementById('auto-post-test-cmds')) {
+        document.getElementById('auto-post-test-cmds').style.display = isWin ? 'block' : 'none';
+      }
+      if (document.getElementById('auto-post-test-cmds-mac')) {
+        document.getElementById('auto-post-test-cmds-mac').style.display = isWin ? 'none' : 'block';
+      }
+      if (document.getElementById('chatgpt-install-cmd')) {
+        document.getElementById('chatgpt-install-cmd').style.display = isWin ? 'block' : 'none';
+      }
+      if (document.getElementById('chatgpt-install-cmd-mac')) {
+        document.getElementById('chatgpt-install-cmd-mac').style.display = isWin ? 'none' : 'block';
+      }
 
       localStorage.setItem('codex_ica_platform', platform);
       regenerateConfig();
@@ -1691,6 +1838,11 @@ npm install -g @openai/codex</pre>
           });
         } catch(e) {}
       }
+      updateProgress();
+    }
+
+    function markAllComplete() {
+      document.querySelectorAll('.step-check').forEach(c => c.checked = true);
       updateProgress();
     }
 
