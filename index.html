@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IBM Codex + ICA Interactive Setup Assistant</title>
+  <style>
+    :root {
+      --ibm-blue-60: #0f62fe;
+      --ibm-blue-70: #0043ce;
+      --ibm-blue-80: #002d9c;
+      --ibm-blue-10: #edf5ff;
+      --ibm-blue-20: #d0e2ff;
+      --ibm-teal: #0072c3;
+      --ibm-green: #24a148;
+      --ibm-green-light: #defbe6;
+      --ibm-yellow: #f1c21b;
+      --ibm-yellow-light: #fef3d6;
+      --ibm-red: #da1e28;
+      --ibm-red-light: #fff1f1;
+      --bg-dark: #121619;
+      --bg-card: #1f2429;
+      --bg-card-hover: #262c33;
+      --bg-code: #161a1d;
+      --text-main: #f4f4f4;
+      --text-muted: #c1c7cd;
+      --text-dim: #878d96;
+      --border: #343a3f;
+      --border-accent: #0f62fe;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 0 0 60px 0;
+    }
+
+    /* Global scrollbar control */
+    body {
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #001141 0%, #0a306c 60%, #0f62fe 100%);
+      padding: 36px 20px 28px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      position: relative;
+    }
+
+    .badge-bar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge.ibm { background: #0f62fe; }
+    .badge.ica { background: #1192e8; }
+    .badge.guide { background: #6929c4; }
+
+    header h1 {
+      font-size: 2.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+
+    header p {
+      font-size: 1rem;
+      color: #e0e0e0;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 24px 20px 0;
+    }
+
+    /* OS Selector & Progress Card */
+    .controls-wrapper {
+      margin-top: 0;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .controls-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    }
+
+    .os-toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .os-toggle-label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .os-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .os-toggle-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--ibm-blue-60);
+    }
+
+    .os-toggle-btn.active {
+      background: var(--ibm-blue-60);
+      border-color: var(--ibm-blue-60);
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(15, 98, 254, 0.4);
+    }
+
+    /* Progress bar */
+    .progress-box {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 24px;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      height: 10px;
+      background: var(--bg-dark);
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0f62fe, #24a148);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* Tabs */
+    .nav-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      overflow: visible;
+    }
+
+    .nav-tab {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      padding: 9px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-tab:hover {
+      background: var(--bg-card-hover);
+      color: #ffffff;
+      border-color: var(--ibm-blue-60);
+    }
+
+    .nav-tab.active {
+      background: var(--ibm-blue-60);
+      border-color: var(--ibm-blue-60);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(15, 98, 254, 0.4);
+    }
+
+    /* Sections */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    /* Checkbox item */
+    .step-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .step-check {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--border-accent);
+      border-radius: 4px;
+      background: var(--bg-dark);
+      cursor: pointer;
+      position: relative;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .step-check:checked {
+      background: var(--ibm-green);
+      border-color: var(--ibm-green);
+    }
+
+    .step-check:checked::after {
+      content: "✔";
+      color: white;
+      position: absolute;
+      font-size: 13px;
+      top: 0px;
+      left: 4px;
+      font-weight: bold;
+    }
+
+    .step-title-wrap {
+      flex-grow: 1;
+    }
+
+    .step-num {
+      display: inline-block;
+      background: var(--ibm-blue-70);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-right: 6px;
+    }
+
+    /* Callout & Alert */
+    .callout {
+      border-left: 4px solid var(--ibm-blue-60);
+      background: rgba(15, 98, 254, 0.1);
+      padding: 14px 18px;
+      border-radius: 0 6px 6px 0;
+      margin: 16px 0;
+      font-size: 0.95rem;
+    }
+
+    .callout.security {
+      border-left-color: var(--ibm-yellow);
+      background: rgba(241, 194, 27, 0.1);
+      color: #ffd875;
+    }
+
+    .callout.success {
+      border-left-color: var(--ibm-green);
+      background: rgba(36, 161, 72, 0.1);
+      color: #a7f0ba;
+    }
+
+    .callout.error {
+      border-left-color: var(--ibm-red);
+      background: rgba(218, 30, 40, 0.1);
+      color: #ffb3b8;
+    }
+
+    /* Code Block */
+    .code-container {
+      position: relative;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin: 14px 0;
+      overflow: hidden;
+    }
+
+    .code-header {
+      background: #1e2226;
+      border-bottom: 1px solid var(--border);
+      padding: 6px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    pre {
+      padding: 14px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      color: #e6edf3;
+      line-height: 1.5;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) var(--bg-code);
+    }
+
+    pre::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    pre::-webkit-scrollbar-track {
+      background: var(--bg-code);
+    }
+
+    pre::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    pre::-webkit-scrollbar-thumb:hover {
+      background: var(--ibm-blue-60);
+    }
+
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin: 16px 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .copy-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: var(--ibm-blue-60);
+      color: #ffffff;
+      border-color: var(--ibm-blue-60);
+    }
+
+    /* Interactive Form Elements */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      color: #ffffff;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: var(--font-mono);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--ibm-blue-60);
+      box-shadow: 0 0 0 2px rgba(15, 98, 254, 0.2);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--ibm-blue-60);
+      color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--ibm-blue-70);
+    }
+
+    .btn.secondary {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+    }
+
+    .btn.secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--ibm-blue-60);
+    }
+
+    .btn.success {
+      background: var(--ibm-green);
+    }
+
+    .btn.success:hover {
+      background: #1f8b3d;
+    }
+
+    /* Grid & Tables */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+      .controls-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.9rem;
+    }
+
+    table.data-table th, table.data-table td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background: var(--bg-code);
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    table.data-table tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Troubleshooting accordion */
+    .faq-item {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 12px;
+      background: var(--bg-code);
+      overflow: hidden;
+    }
+
+    .faq-question {
+      padding: 14px 18px;
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .faq-question:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .faq-question .arrow {
+      transition: transform 0.2s;
+    }
+
+    .faq-item.open .faq-question .arrow {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      display: none;
+      padding: 16px 18px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-card);
+      font-size: 0.92rem;
+    }
+
+    .faq-item.open .faq-answer {
+      display: block;
+    }
+
+    /* Search Input */
+    .search-box {
+      margin-bottom: 16px;
+    }
+
+    /* Utility */
+    .os-mac, .os-win {
+      display: none;
+    }
+
+    body.platform-mac .os-mac { display: inline-block; }
+    body.platform-mac div.os-mac, body.platform-mac p.os-mac, body.platform-mac pre.os-mac, body.platform-mac table.os-mac, body.platform-mac tr.os-mac { display: block; }
+    body.platform-mac td.os-mac { display: table-cell; }
+
+    body.platform-win .os-win { display: inline-block; }
+    body.platform-win div.os-win, body.platform-win p.os-win, body.platform-win pre.os-win, body.platform-win table.os-win, body.platform-win tr.os-win { display: block; }
+    body.platform-win td.os-win { display: table-cell; }
+
+    .tag-hotkey {
+      display: inline-block;
+      padding: 2px 6px;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.85em;
+      color: #79c0ff;
+    }
+  </style>
+</head>
+<body class="platform-win">
+
+  <!-- Header -->
+  <header>
+    <div class="badge-bar">
+      <span class="badge ibm">IBM Consulting</span>
+      <span class="badge ica">ICA 2.0 Integration</span>
+      <span class="badge guide">Setup Assistant</span>
+    </div>
+    <h1>IBM Codex + ICA Setup Assistant</h1>
+    <p>Configure OpenAI Codex (CLI, VS Code extension, and ChatGPT desktop) to connect securely with IBM Consulting Advantage models.</p>
+  </header>
+
+  <div class="container">
+    
+    <!-- Controls & Progress -->
+    <div class="controls-wrapper">
+      <div class="controls-card">
+        <div class="os-toggle-group">
+          <span class="os-toggle-label">Your Operating System:</span>
+          <button type="button" class="os-toggle-btn active" id="btnWin" onclick="setPlatform('win')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.949-1.899"/></svg>
+            Windows
+          </button>
+          <button type="button" class="os-toggle-btn" id="btnMac" onclick="setPlatform('mac')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.93-2.85-.9.04-2 .6-2.65 1.35-.58.66-1.08 1.73-.95 2.76.99.08 2.05-.51 2.67-1.26z"/></svg>
+            macOS (Apple Silicon)
+          </button>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button class="btn secondary" onclick="resetChecklist()" title="Reset Checklist">↺ Reset Progress</button>
+        </div>
+      </div>
+
+      <div class="progress-box">
+        <div class="progress-info">
+          <span>Overall Setup Progress</span>
+          <span id="progressPercent">0% (0 / 6 Steps Completed)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressBar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab('auto')">⚡ 1-Click Automated Setup</button>
+      <button class="nav-tab" onclick="switchTab('prereqs')">📋 Step 1: Pre-requisites</button>
+      <button class="nav-tab" onclick="switchTab('portal')">🔑 Step 2: ICA Portal & API Key</button>
+      <button class="nav-tab" onclick="switchTab('manual')">🛠️ Step 3: Manual Config</button>
+      <button class="nav-tab" onclick="switchTab('clients')">💻 Step 4: VS Code & Desktop</button>
+      <button class="nav-tab" onclick="switchTab('troubleshoot')">❓ Diagnostic & FAQ</button>
+    </div>
+
+    <!-- TAB 1: 1-Click Automated Setup -->
+    <div id="tab-auto" class="tab-content active">
+      <div class="card">
+        <div class="step-header">
+          <input type="checkbox" class="step-check" id="check-auto" onchange="updateProgress()">
+          <div class="step-title-wrap">
+            <h2 class="card-title">
+              <span class="step-num">Auto</span> Fast-Track: Automated Script Setup
+            </h2>
+            <p class="card-subtitle">
+              We have provided ready-to-run automation scripts for both Windows and macOS that automatically create all configuration files, set model catalogs, prompt securely for your key, and verify permissions.
+            </p>
+          </div>
+        </div>
+
+        <div class="callout success">
+          <strong>Recommended for all users:</strong> The automation script handles directory creation, JSON model catalog deployment, TOML config merging, and secure API key permissions automatically.
+        </div>
+
+        <h3 style="margin: 18px 0 10px; font-size: 1.1rem; color: #fff;">Option A: Run Directly in Terminal / PowerShell</h3>
+        
+        <div class="os-win">
+          <p style="font-size:0.95rem; margin-bottom:8px;">Open <strong>PowerShell</strong> as your normal user and paste:</p>
+          <div class="code-container">
+            <div class="code-header">
+              <span>PowerShell</span>
+              <button class="copy-btn" onclick="copyCode('ps1-cmd')">📋 Copy Command</button>
+            </div>
+            <pre id="ps1-cmd">powershell -ExecutionPolicy Bypass -File .\setup-codex-ica.ps1</pre>
+          </div>
+        </div>
+
+        <div class="os-mac">
+          <p style="font-size:0.95rem; margin-bottom:8px;">Open <strong>Terminal</strong> (zsh) and paste:</p>
+          <div class="code-container">
+            <div class="code-header">
+              <span>Terminal (Zsh)</span>
+              <button class="copy-btn" onclick="copyCode('sh-cmd')">📋 Copy Command</button>
+            </div>
+            <pre id="sh-cmd">chmod +x setup-codex-ica.sh && ./setup-codex-ica.sh</pre>
+          </div>
+        </div>
+
+        <h3 style="margin: 24px 0 10px; font-size: 1.1rem; color: #fff;">Option B: Download Standalone Setup Script</h3>
+        <p style="font-size:0.95rem; margin-bottom:12px;">Download the script directly to your computer and run it:</p>
+
+        <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom: 24px;">
+          <a href="setup-codex-ica.ps1" download="setup-codex-ica.ps1" class="btn os-win">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download setup-codex-ica.ps1 (Windows)
+          </a>
+          <a href="setup-codex-ica.sh" download="setup-codex-ica.sh" class="btn os-mac">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download setup-codex-ica.sh (macOS)
+          </a>
+          <a href="ica-models.json" download="ica-models.json" class="btn secondary">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download ica-models.json Catalog
+          </a>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 28px 0 20px;">
+
+        <!-- Crystal Clear Post-Setup Roadmap -->
+        <h2 style="font-size: 1.3rem; color: #56c8ff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          🎯 What To Do Next: Your 2-Step Roadmap
+        </h2>
+        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 16px;">
+          Once the automated script reports <em>"Completed Successfully"</em>, follow these 2 simple steps:
+        </p>
+
+        <!-- Phase 1 -->
+        <div style="background: rgba(15, 98, 254, 0.08); border: 1px solid var(--ibm-blue-60); border-radius: 8px; padding: 18px; margin-bottom: 18px;">
+          <h3 style="font-size: 1.05rem; color: #ffffff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+            <span style="background: var(--ibm-blue-60); color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">1</span>
+            Step 1: Test the Connection in Terminal (Takes 30 seconds)
+          </h3>
+          <p style="font-size: 0.92rem; color: var(--text-muted); margin-bottom: 10px;">
+            Run these commands to confirm your terminal is talking to IBM Consulting Advantage:
+          </p>
+          
+          <div class="code-container">
+            <div class="code-header">
+              <span><span class="os-win">PowerShell</span><span class="os-mac">Terminal</span></span>
+              <button class="copy-btn" onclick="copyCode('post-test-cmds')">📋 Copy</button>
+            </div>
+            <pre id="post-test-cmds" class="os-win">cd "$HOME\codex-ica-test"
+codex</pre>
+            <pre id="post-test-cmds-mac" class="os-mac" style="display:none;">cd "$HOME/codex-ica-test"
+codex</pre>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; margin-top: 10px;">
+            <div>• Inside Codex, type <code>/status</code> &rarr; verify it says <strong>provider: ica</strong> and <strong>model: gpt-advantage-assist</strong>.</div>
+            <div>• Send the test prompt: <code>Say hello in one sentence. Do not create or modify any files.</code></div>
+            <div>• Type <code>/exit</code> to quit when done.</div>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div style="background: rgba(36, 161, 72, 0.08); border: 1px solid var(--ibm-green); border-radius: 8px; padding: 18px;">
+          <h3 style="font-size: 1.05rem; color: #ffffff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+            <span style="background: var(--ibm-green); color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">2</span>
+            Step 2: Start Daily Coding in Visual Studio Code
+          </h3>
+          <p style="font-size: 0.92rem; color: var(--text-muted); margin-bottom: 12px;">
+            This is where you will actually write code, build apps, and debug with Codex:
+          </p>
+
+          <ol style="margin-left: 20px; font-size: 0.92rem; display: flex; flex-direction: column; gap: 8px;">
+            <li>Open <strong>Visual Studio Code</strong>.</li>
+            <li>Press <span class="tag-hotkey"><span class="os-win">Ctrl+Shift+X</span><span class="os-mac">Cmd+Shift+X</span></span>, search for <code>Codex</code>, and install <strong>"Codex - OpenAI's coding agent"</strong> (ID: <code>OpenAI.chatgpt</code>).</li>
+            <li>Go to <strong>File &gt; Open Folder</strong> and open your project folder (or <code>codex-ica-test</code>). Click <strong>"Trust this folder"</strong>.</li>
+            <li>Click the <strong>Codex icon</strong> in the left sidebar to open the chat panel.</li>
+            <li>Ask Codex to write code, review files, create tests, or debug errors!</li>
+          </ol>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 2: Pre-requisites -->
+    <div id="tab-prereqs" class="tab-content">
+      <div class="card">
+        <div class="step-header">
+          <input type="checkbox" class="step-check" id="check-prereqs" onchange="updateProgress()">
+          <div class="step-title-wrap">
+            <h2 class="card-title">
+              <span class="step-num">Step 1</span> Install Required Tools & Verify Environment
+            </h2>
+            <p class="card-subtitle">
+              Verify that Git, Node.js, npm, Python, and VS Code are installed in your user account.
+            </p>
+          </div>
+        </div>
+
+        <h3 style="font-size: 1.05rem; margin-bottom: 12px; color: #fff;">1.1 Quick Verification Commands</h3>
+        <p style="font-size:0.95rem; margin-bottom:10px;">Run these commands in your <span class="os-win">PowerShell</span><span class="os-mac">Terminal</span> to see what is already installed:</p>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span><span class="os-win">PowerShell</span><span class="os-mac">Terminal (Zsh)</span></span>
+            <button class="copy-btn" onclick="copyCode('verify-cmds')">📋 Copy All</button>
+          </div>
+          <pre id="verify-cmds" class="os-win">node -v
+npm -v
+git --version
+python --version
+code --version
+codex --version</pre>
+          <pre id="verify-cmds-mac" class="os-mac" style="display:none;">node -v
+npm -v
+git --version
+python3 --version
+code --version
+codex --version</pre>
+        </div>
+
+        <h3 style="font-size: 1.05rem; margin: 20px 0 12px; color: #fff;">1.2 Tool Downloads & Install Guide</h3>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Purpose</th>
+                <th>Install / Download Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Git</strong></td>
+                <td>Source control integration</td>
+                <td>
+                  <span class="os-win">
+                    <a href="https://git-scm.com/download/win" target="_blank" style="color:#79c0ff;">Git for Windows</a> or run: <code>winget install --id Git.Git -e</code>
+                  </span>
+                  <span class="os-mac">
+                    Run <code>git --version</code> in Terminal; click <strong>Install</strong> on the Xcode command line prompt.
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Node.js (LTS) & npm</strong></td>
+                <td>Codex runtime engine</td>
+                <td>
+                  <span class="os-win">
+                    <a href="https://nodejs.org/en/download" target="_blank" style="color:#79c0ff;">Node.js Windows Installer (.msi)</a> or: <code>winget install OpenJS.NodeJS.LTS</code>
+                  </span>
+                  <span class="os-mac">
+                    <a href="https://nodejs.org/en/download" target="_blank" style="color:#79c0ff;">Node.js macOS ARM64 (.pkg)</a>
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Codex CLI</strong></td>
+                <td>OpenAI Codex engine</td>
+                <td>
+                  Run in terminal: <code>npm install -g @openai/codex</code>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>VS Code</strong></td>
+                <td>IDE with Codex extension</td>
+                <td>
+                  <span class="os-win">
+                    <a href="https://code.visualstudio.com/download" target="_blank" style="color:#79c0ff;">VS Code User Installer (x64)</a>
+                  </span>
+                  <span class="os-mac">
+                    <a href="https://code.visualstudio.com/download" target="_blank" style="color:#79c0ff;">VS Code for Apple Silicon (.dmg)</a>
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Python</strong></td>
+                <td>Running verification scripts</td>
+                <td>
+                  <span class="os-win"><a href="https://www.python.org/downloads/windows/" target="_blank" style="color:#79c0ff;">Python for Windows</a> (Ensure "Add python.exe to PATH" is ticked)</span>
+                  <span class="os-mac">Pre-installed with Apple Command Line Tools (<code>python3</code>)</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: ICA Portal -->
+    <div id="tab-portal" class="tab-content">
+      <div class="card">
+        <div class="step-header">
+          <input type="checkbox" class="step-check" id="check-portal" onchange="updateProgress()">
+          <div class="step-title-wrap">
+            <h2 class="card-title">
+              <span class="step-num">Step 2</span> Create ICA 2.0 Team & Generate Codex API Key
+            </h2>
+            <p class="card-subtitle">
+              Obtain your dedicated Coding Agent API key from the IBM Consulting Advantage portal.
+            </p>
+          </div>
+        </div>
+
+        <div class="callout security">
+          <strong>Security Notice:</strong> Always treat your ICA API Key like a password. Never commit it to git, share it over Slack/chat, or paste it in screenshots.
+        </div>
+
+        <ol style="margin-left: 20px; font-size: 0.95rem; display: flex; flex-direction: column; gap: 14px;">
+          <li>
+            <strong>Sign In:</strong> Navigate to the ICA Portal: <a href="https://servicesessentials.ibm.com/" target="_blank" style="color:#79c0ff;">https://servicesessentials.ibm.com/</a>
+          </li>
+          <li>
+            <strong>Select or Create a Team:</strong>
+            <ul style="margin: 6px 0 6px 20px; color: var(--text-muted);">
+              <li>Click the Team Selector in the top right header.</li>
+              <li>Click <strong>Create or Join Team &gt; Create a Team</strong>.</li>
+              <li>Name your team (e.g., <code>[Your Name] Codex Training</code>), select your Org / Service Line, and toggle <strong>Private Team</strong> on.</li>
+              <li>Verify your active team has the <strong>2.0 badge</strong> next to its name.</li>
+            </ul>
+          </li>
+          <li>
+            <strong>Generate Coding Agent API Key:</strong>
+            <ul style="margin: 6px 0 6px 20px; color: var(--text-muted);">
+              <li>Go to <strong>Settings &gt; API Keys &gt; Coding Agents</strong>.</li>
+              <li>Click <strong>Generate Coding Agent API Key</strong>.</li>
+              <li>Locate the <strong>Codex</strong> row and copy the generated API key. (<em>Important: Do not use a generic ICA key</em>).</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- TAB 4: Manual Config -->
+    <div id="tab-manual" class="tab-content">
+      <div class="card">
+        <div class="step-header">
+          <input type="checkbox" class="step-check" id="check-manual" onchange="updateProgress()">
+          <div class="step-title-wrap">
+            <h2 class="card-title">
+              <span class="step-num">Step 3</span> Manual Configuration Builder
+            </h2>
+            <p class="card-subtitle">
+              Inspect and generate the exact configuration files (<code>ica-models.json</code>, <code>config.toml</code>, and <code>.env</code>).
+            </p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Your Machine Username:</label>
+            <input type="text" id="cfgUsername" class="form-input" placeholder="e.g. RameshVJ or john_doe" oninput="regenerateConfig()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Your ICA Coding Agent Key (Optional Preview):</label>
+            <input type="password" id="cfgApiKey" class="form-input" placeholder="Paste key to preview .env (stays in browser only)" oninput="regenerateConfig()">
+          </div>
+        </div>
+
+        <!-- File 1: ica-models.json -->
+        <h3 style="font-size: 1.05rem; margin: 18px 0 8px; color: #fff;">3.1 Model Catalog File: <code>~/.codex/model-catalog/ica-models.json</code></h3>
+        <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:8px;">
+          Contains model definitions for <code>gpt-advantage-assist</code>, <code>gpt-5.6-sol</code>, <code>gpt-5.6-luna</code>, <code>gpt-5.6-terra</code>, <code>gpt-5.4</code>, <code>gpt-5.1</code>.
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <span>ica-models.json</span>
+            <button class="copy-btn" onclick="copyCode('code-models-json')">📋 Copy JSON</button>
+          </div>
+          <pre id="code-models-json" style="max-height: 200px;">Loading catalog...</pre>
+        </div>
+
+        <!-- File 2: config.toml -->
+        <h3 style="font-size: 1.05rem; margin: 24px 0 8px; color: #fff;">3.2 Codex Configuration: <code>~/.codex/config.toml</code></h3>
+        <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:8px;">
+          Points Codex to the local ICA model catalog and configures the provider endpoint.
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <span>config.toml</span>
+            <button class="copy-btn" onclick="copyCode('code-config-toml')">📋 Copy config.toml</button>
+          </div>
+          <pre id="code-config-toml">Loading toml...</pre>
+        </div>
+
+        <!-- File 3: .env -->
+        <h3 style="font-size: 1.05rem; margin: 24px 0 8px; color: #fff;">3.3 Secure Secret: <code>~/.codex/.env</code></h3>
+        <div class="code-container">
+          <div class="code-header">
+            <span>.env</span>
+            <button class="copy-btn" onclick="copyCode('code-env')">📋 Copy .env</button>
+          </div>
+          <pre id="code-env">ICA_API_KEY=YOUR_KEY_HERE</pre>
+        </div>
+
+        <h3 style="font-size: 1.05rem; margin: 24px 0 8px; color: #fff;">3.4 Apply Strict File Permissions</h3>
+        <div class="code-container">
+          <div class="code-header">
+            <span><span class="os-win">PowerShell (Owner Only)</span><span class="os-mac">Terminal (chmod 600)</span></span>
+            <button class="copy-btn" onclick="copyCode('code-perm')">📋 Copy Permission Command</button>
+          </div>
+          <pre id="code-perm" class="os-win">icacls "$HOME\.codex\.env" /inheritance:r /grant:r "$($env:USERNAME):F"</pre>
+          <pre id="code-perm-mac" class="os-mac" style="display:none;">chmod 600 ~/.codex/.env</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: Clients & Testing -->
+    <div id="tab-clients" class="tab-content">
+      <div class="card">
+        <div class="step-header">
+          <input type="checkbox" class="step-check" id="check-clients" onchange="updateProgress()">
+          <div class="step-title-wrap">
+            <h2 class="card-title">
+              <span class="step-num">Step 4</span> Verification: CLI, VS Code, and Desktop App
+            </h2>
+            <p class="card-subtitle">
+              Verify your setup in the Codex CLI and Visual Studio Code.
+            </p>
+          </div>
+        </div>
+
+        <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 10px;">4.1 Codex CLI Verification</h3>
+        <p style="font-size: 0.95rem; margin-bottom: 10px;">
+          Load the environment and start Codex in the test folder:
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <span><span class="os-win">PowerShell</span><span class="os-mac">Terminal</span></span>
+            <button class="copy-btn" onclick="copyCode('cli-test-cmd')">📋 Copy</button>
+          </div>
+          <pre id="cli-test-cmd" class="os-win">$env:ICA_API_KEY = [System.Environment]::GetEnvironmentVariable('ICA_API_KEY', 'User')
+New-Item -ItemType Directory -Force "$HOME\codex-ica-test" | Out-Null
+cd "$HOME\codex-ica-test"
+codex</pre>
+          <pre id="cli-test-cmd-mac" class="os-mac" style="display:none;">mkdir -p ~/codex-ica-test
+cd ~/codex-ica-test
+codex</pre>
+        </div>
+
+        <p style="font-size: 0.95rem; margin-top: 10px;">
+          Inside Codex, type <code>/status</code> and verify:
+        </p>
+        <div class="callout success">
+          <strong>Expected /status Output:</strong><br>
+          • <strong>provider:</strong> <code>ica</code><br>
+          • <strong>model:</strong> <code>gpt-advantage-assist</code>
+        </div>
+
+        <p style="font-size: 0.95rem;">Send safe test prompt:</p>
+        <div class="code-container">
+          <div class="code-header">
+            <span>Test Prompt</span>
+            <button class="copy-btn" onclick="copyCode('prompt-1')">📋 Copy</button>
+          </div>
+          <pre id="prompt-1">Say hello in one sentence. Do not create or modify any files.</pre>
+        </div>
+
+        <h3 style="font-size: 1.1rem; color: #fff; margin: 26px 0 10px;">4.2 VS Code Extension Setup</h3>
+        <ol style="margin-left: 20px; font-size: 0.95rem; display: flex; flex-direction: column; gap: 10px;">
+          <li>Open VS Code (<span class="tag-hotkey"><span class="os-win">Ctrl+Shift+X</span><span class="os-mac">Cmd+Shift+X</span></span>) and search for <strong>Codex</strong>.</li>
+          <li>Install <strong>"Codex - OpenAI's coding agent"</strong> (Publisher: OpenAI, ID: <code>OpenAI.chatgpt</code>).</li>
+          <li>Open folder: <code>~/codex-ica-test</code> (<span class="os-win"><code>C:\Users\&lt;user&gt;\codex-ica-test</code></span>).</li>
+          <li>Trust the folder when prompted (<strong>Trust this folder only</strong>).</li>
+          <li>Open the Codex tab in the sidebar and send the final coding test prompt:</li>
+        </ol>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>Coding Verification Prompt</span>
+            <button class="copy-btn" onclick="copyCode('prompt-code')">📋 Copy</button>
+          </div>
+          <pre id="prompt-code">Create a Python program named hello.py that prints "IBM Codex ICA integration successful". Run the program, verify its output, and report the result. Do not modify any other files.</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: Troubleshooting & Diagnostic -->
+    <div id="tab-troubleshoot" class="tab-content">
+      <div class="card">
+        <h2 class="card-title">❓ Diagnostic & Troubleshooting Assistant</h2>
+        <p class="card-subtitle">
+          Instant solutions for common installation errors and environment misconfigurations.
+        </p>
+
+        <div class="search-box">
+          <input type="text" id="faqSearch" class="form-input" placeholder="🔍 Filter issues (e.g. 'permission', 'execution policy', 'openai', '.env')..." oninput="filterFaq()">
+        </div>
+
+        <!-- Issue 0: UTF-8 BOM Error -->
+        <div class="faq-item open">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>⚠️ "failed to parse model_catalog_json ... expected value at line 1 column 1"</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-answer">
+            <p><strong>Root Cause:</strong> The <code>ica-models.json</code> file was saved with a UTF-8 Byte Order Mark (BOM: <code>0xEF 0xBB 0xBF</code>). The Codex Rust JSON parser requires pure UTF-8 without BOM.</p>
+            <p><strong>Fix:</strong> Re-save the file as pure UTF-8 (No BOM). In PowerShell, run:</p>
+            <div class="code-container">
+              <div class="code-header">
+                <span>PowerShell Fix</span>
+                <button class="copy-btn" onclick="copyCode('faq-fix-bom')">📋 Copy</button>
+              </div>
+              <pre id="faq-fix-bom">$path = "$HOME\.codex\model-catalog\ica-models.json"
+$content = Get-Content $path -Raw
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($path, $content, $utf8NoBom)</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 0.5: Missing environment variable / Background daemon cache -->
+        <div class="faq-item open">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>⚠️ "Missing environment variable: ICA_API_KEY" (Background Daemon Cache)</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-answer">
+            <p><strong>Root Cause:</strong> Codex CLI uses a persistent background daemon server (<code>Local background server</code>). If the server was started before <code>ICA_API_KEY</code> was saved, it holds the old environment in memory.</p>
+            <p><strong>Fix:</strong> Stop the background daemon and re-launch Codex. Run in PowerShell:</p>
+            <div class="code-container">
+              <div class="code-header">
+                <span>PowerShell Fix</span>
+                <button class="copy-btn" onclick="copyCode('faq-fix-daemon')">📋 Copy</button>
+              </div>
+              <pre id="faq-fix-daemon">Get-Process -Name 'codex', 'node_repl' -ErrorAction SilentlyContinue | Stop-Process -Force
+$env:ICA_API_KEY = [System.Environment]::GetEnvironmentVariable('ICA_API_KEY', 'User')
+codex</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 1 -->
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>⚠️ Windows: "codex cannot be loaded because running scripts is disabled"</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-answer">
+            <p>PowerShell execution policy is blocking script execution. Run the following command in PowerShell, or run <code>codex.cmd</code> instead:</p>
+            <div class="code-container">
+              <div class="code-header">
+                <span>PowerShell</span>
+                <button class="copy-btn" onclick="copyCode('faq-fix-1')">📋 Copy</button>
+              </div>
+              <pre id="faq-fix-1">Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 2 -->
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>⚠️ /status shows "openai" instead of "ica"</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-answer">
+            <p>This happens if the 4 top-level settings in <code>config.toml</code> were placed below a <code>[section]</code> header or the catalog path has unescaped backslashes.</p>
+            <p>Ensure these lines appear at the very top of <code>~/.codex/config.toml</code>:</p>
+            <div class="code-container">
+              <div class="code-header">
+                <span>config.toml (Top of file)</span>
+                <button class="copy-btn" onclick="copyCode('faq-fix-2')">📋 Copy</button>
+              </div>
+              <pre id="faq-fix-2">model = "gpt-advantage-assist"
+model_provider = "ica"
+model_catalog_json = "C:\\Users\\YOUR_USERNAME\\.codex\\model-catalog\\ica-models.json"
+model_reasoning_effort = "medium"</pre>
+            </div>
+            <p>Or override temporarily via CLI: <code>codex --config 'model_provider="ica"' --model gpt-advantage-assist</code></p>
+          </div>
+        </div>
+
+        <!-- Issue 3 -->
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>⚠️ Windows: Files saved with .txt extension (e.g. .env.txt or ica-models.json.txt)</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-answer">
+            <p>Notepad automatically appends <code>.txt</code> if not saved as "All Files".</p>
+            <p><strong>Fix:</strong> In File Explorer, enable <strong>View &gt; Show &gt; File name extensions</strong>, then rename the file to remove the trailing <code>.txt</code>. Or use the automation script to create files accurately.</p>
+          </div>
+        </div>
+
+        <!-- Issue 4 -->
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>⚠️ macOS: npm shows EACCES permission error during global install</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-answer">
+            <p>Avoid using <code>sudo</code>. Configure npm to store global packages inside your home directory:</p>
+            <div class="code-container">
+              <div class="code-header">
+                <span>Terminal (Zsh)</span>
+                <button class="copy-btn" onclick="copyCode('faq-fix-4')">📋 Copy</button>
+              </div>
+              <pre id="faq-fix-4">mkdir -p "$HOME/.npm-global"
+npm config set prefix "$HOME/.npm-global"
+echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+npm install -g @openai/codex</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 5 -->
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>⚠️ "Metadata not found" warning in terminal</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-answer">
+            <p>This is a known cosmetic warning in current Codex CLI versions when reading custom model catalogs. As long as <code>/status</code> shows <code>provider: ica</code> and the hello prompt succeeds, this warning can be safely ignored.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Model catalog data object
+    const MODEL_CATALOG_DATA = {
+      "models": [
+        {
+          "slug": "gpt-advantage-assist",
+          "display_name": "GPT Advantage Assist",
+          "description": "GPT Advantage Assist from ICA",
+          "default_reasoning_level": "medium",
+          "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+          "supported_reasoning_levels": [
+            { "effort": "low", "description": "Faster responses with lighter reasoning" },
+            { "effort": "medium", "description": "Balanced speed and reasoning" },
+            { "effort": "high", "description": "Deeper reasoning for complex tasks" },
+            { "effort": "xhigh", "description": "Maximum reasoning for difficult tasks" }
+          ],
+          "shell_type": "shell_command",
+          "visibility": "list",
+          "supported_in_api": true,
+          "support_verbosity": true,
+          "truncation_policy": { "mode": "bytes", "limit": 10000 },
+          "experimental_supported_tools": [],
+          "priority": 0,
+          "upgrade": null
+        },
+        {
+          "slug": "gpt-5.6-sol",
+          "display_name": "GPT-5.6 Sol",
+          "description": "GPT-5.6 Sol from ICA",
+          "default_reasoning_level": "medium",
+          "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+          "supported_reasoning_levels": [
+            { "effort": "low", "description": "Faster responses with lighter reasoning" },
+            { "effort": "medium", "description": "Balanced speed and reasoning" },
+            { "effort": "high", "description": "Deeper reasoning for complex tasks" },
+            { "effort": "xhigh", "description": "Maximum reasoning for difficult tasks" }
+          ],
+          "shell_type": "shell_command",
+          "visibility": "list",
+          "supported_in_api": true,
+          "support_verbosity": true,
+          "truncation_policy": { "mode": "bytes", "limit": 10000 },
+          "experimental_supported_tools": [],
+          "priority": 0,
+          "upgrade": null
+        },
+        {
+          "slug": "gpt-5.6-luna",
+          "display_name": "GPT-5.6 Luna",
+          "description": "GPT-5.6 Luna from ICA",
+          "default_reasoning_level": "medium",
+          "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+          "supported_reasoning_levels": [
+            { "effort": "low", "description": "Faster responses with lighter reasoning" },
+            { "effort": "medium", "description": "Balanced speed and reasoning" },
+            { "effort": "high", "description": "Deeper reasoning for complex tasks" },
+            { "effort": "xhigh", "description": "Maximum reasoning for difficult tasks" }
+          ],
+          "shell_type": "shell_command",
+          "visibility": "list",
+          "supported_in_api": true,
+          "support_verbosity": true,
+          "truncation_policy": { "mode": "bytes", "limit": 10000 },
+          "experimental_supported_tools": [],
+          "priority": 0,
+          "upgrade": null
+        },
+        {
+          "slug": "gpt-5.6-terra",
+          "display_name": "GPT-5.6 Terra",
+          "description": "GPT-5.6 Terra from ICA",
+          "default_reasoning_level": "medium",
+          "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+          "supported_reasoning_levels": [
+            { "effort": "low", "description": "Faster responses with lighter reasoning" },
+            { "effort": "medium", "description": "Balanced speed and reasoning" },
+            { "effort": "high", "description": "Deeper reasoning for complex tasks" },
+            { "effort": "xhigh", "description": "Maximum reasoning for difficult tasks" }
+          ],
+          "shell_type": "shell_command",
+          "visibility": "list",
+          "supported_in_api": true,
+          "support_verbosity": true,
+          "truncation_policy": { "mode": "bytes", "limit": 10000 },
+          "experimental_supported_tools": [],
+          "priority": 0,
+          "upgrade": null
+        },
+        {
+          "slug": "gpt-5.4",
+          "display_name": "GPT-5.4",
+          "description": "GPT-5.4 from ICA",
+          "default_reasoning_level": "medium",
+          "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+          "supported_reasoning_levels": [
+            { "effort": "low", "description": "Faster responses with lighter reasoning" },
+            { "effort": "medium", "description": "Balanced speed and reasoning" },
+            { "effort": "high", "description": "Deeper reasoning for complex tasks" },
+            { "effort": "xhigh", "description": "Maximum reasoning for difficult tasks" }
+          ],
+          "shell_type": "shell_command",
+          "visibility": "list",
+          "supported_in_api": true,
+          "support_verbosity": true,
+          "truncation_policy": { "mode": "bytes", "limit": 10000 },
+          "experimental_supported_tools": [],
+          "priority": 0,
+          "upgrade": null
+        },
+        {
+          "slug": "gpt-5.1",
+          "display_name": "GPT-5.1",
+          "description": "GPT-5.1 from ICA",
+          "default_reasoning_level": "medium",
+          "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+          "supported_reasoning_levels": [
+            { "effort": "low", "description": "Faster responses with lighter reasoning" },
+            { "effort": "medium", "description": "Balanced speed and reasoning" },
+            { "effort": "high", "description": "Deeper reasoning for complex tasks" },
+            { "effort": "xhigh", "description": "Maximum reasoning for difficult tasks" }
+          ],
+          "shell_type": "shell_command",
+          "visibility": "list",
+          "supported_in_api": true,
+          "support_verbosity": true,
+          "truncation_policy": { "mode": "bytes", "limit": 10000 },
+          "experimental_supported_tools": [],
+          "priority": 0,
+          "upgrade": null
+        }
+      ]
+    };
+
+    let currentPlatform = 'win';
+
+    function setPlatform(platform) {
+      currentPlatform = platform;
+      document.body.className = 'platform-' + platform;
+      
+      document.getElementById('btnWin').classList.toggle('active', platform === 'win');
+      document.getElementById('btnMac').classList.toggle('active', platform === 'mac');
+
+      // Update code blocks that toggle based on platform
+      const isWin = platform === 'win';
+      document.getElementById('verify-cmds').style.display = isWin ? 'block' : 'none';
+      document.getElementById('verify-cmds-mac').style.display = isWin ? 'none' : 'block';
+      document.getElementById('code-perm').style.display = isWin ? 'block' : 'none';
+      document.getElementById('code-perm-mac').style.display = isWin ? 'none' : 'block';
+      document.getElementById('cli-test-cmd').style.display = isWin ? 'block' : 'none';
+      document.getElementById('cli-test-cmd-mac').style.display = isWin ? 'none' : 'block';
+      if (document.getElementById('post-test-cmds')) {
+        document.getElementById('post-test-cmds').style.display = isWin ? 'block' : 'none';
+      }
+      if (document.getElementById('post-test-cmds-mac')) {
+        document.getElementById('post-test-cmds-mac').style.display = isWin ? 'none' : 'block';
+      }
+
+      regenerateConfig();
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
+
+      const target = document.getElementById('tab-' + tabId);
+      if (target) {
+        target.classList.add('active');
+      }
+
+      event.currentTarget.classList.add('active');
+    }
+
+    function regenerateConfig() {
+      const usernameInput = document.getElementById('cfgUsername').value.trim();
+      const apiKeyInput = document.getElementById('cfgApiKey').value.trim();
+      const username = usernameInput || (currentPlatform === 'win' ? 'YOUR_USERNAME' : 'YOUR_USERNAME');
+      const apiKey = apiKeyInput || 'REPLACE_WITH_YOUR_NEW_CODEX_CODING_AGENT_KEY';
+
+      // 1. Model Catalog
+      document.getElementById('code-models-json').innerText = JSON.stringify(MODEL_CATALOG_DATA, null, 2);
+
+      // 2. Config.toml
+      let catalogPath = '';
+      if (currentPlatform === 'win') {
+        catalogPath = `C:\\\\Users\\\\${username}\\\\.codex\\\\model-catalog\\\\ica-models.json`;
+      } else {
+        catalogPath = `/Users/${username}/.codex/model-catalog/ica-models.json`;
+      }
+
+      const tomlContent = `model = "gpt-advantage-assist"\nmodel_provider = "ica"\nmodel_catalog_json = "${catalogPath}"\nmodel_reasoning_effort = "medium"\n\n[model_providers.ica]\nname = "ICA"\nbase_url = "https://api.servicesessentials.ibm.com/v1"\nwire_api = "responses"\nenv_key = "ICA_API_KEY"\nrequires_openai_auth = false\n`;
+
+      document.getElementById('code-config-toml').innerText = tomlContent;
+
+      // 3. .env
+      document.getElementById('code-env').innerText = `ICA_API_KEY=${apiKey}`;
+    }
+
+    function copyCode(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      const text = el.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = event.currentTarget;
+        const originalText = btn.innerText;
+        btn.innerText = '✅ Copied!';
+        setTimeout(() => { btn.innerText = originalText; }, 2000);
+      });
+    }
+
+    function toggleFaq(el) {
+      const parent = el.closest('.faq-item');
+      parent.classList.toggle('open');
+    }
+
+    function filterFaq() {
+      const query = document.getElementById('faqSearch').value.toLowerCase();
+      document.querySelectorAll('.faq-item').forEach(item => {
+        const text = item.innerText.toLowerCase();
+        if (text.includes(query)) {
+          item.style.display = 'block';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+
+    function updateProgress() {
+      const checks = document.querySelectorAll('.step-check');
+      let checked = 0;
+      checks.forEach(c => {
+        if (c.checked) checked++;
+      });
+      const pct = Math.round((checked / checks.length) * 100);
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressPercent').innerText = `${pct}% (${checked} / ${checks.length} Steps Completed)`;
+
+      // Save to localStorage
+      const state = {};
+      checks.forEach(c => { state[c.id] = c.checked; });
+      localStorage.setItem('codex_ica_progress', JSON.stringify(state));
+    }
+
+    function loadProgress() {
+      const saved = localStorage.getItem('codex_ica_progress');
+      if (saved) {
+        try {
+          const state = JSON.parse(saved);
+          Object.keys(state).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.checked = state[id];
+          });
+        } catch(e) {}
+      }
+      updateProgress();
+    }
+
+    function resetChecklist() {
+      document.querySelectorAll('.step-check').forEach(c => c.checked = false);
+      localStorage.removeItem('codex_ica_progress');
+      updateProgress();
+    }
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      // Auto detect OS
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      setPlatform(isMac ? 'mac' : 'win');
+      loadProgress();
+    });
+  </script>
+</body>
+</html>

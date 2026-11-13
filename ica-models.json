@@ -1,0 +1,220 @@
+{
+  "models": [
+    {
+      "slug": "gpt-advantage-assist",
+      "display_name": "GPT Advantage Assist",
+      "description": "GPT Advantage Assist from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    },
+    {
+      "slug": "gpt-5.6-sol",
+      "display_name": "GPT-5.6 Sol",
+      "description": "GPT-5.6 Sol from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    },
+    {
+      "slug": "gpt-5.6-luna",
+      "display_name": "GPT-5.6 Luna",
+      "description": "GPT-5.6 Luna from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    },
+    {
+      "slug": "gpt-5.6-terra",
+      "display_name": "GPT-5.6 Terra",
+      "description": "GPT-5.6 Terra from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    },
+    {
+      "slug": "gpt-5.4",
+      "display_name": "GPT-5.4",
+      "description": "GPT-5.4 from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    },
+    {
+      "slug": "gpt-5.1",
+      "display_name": "GPT-5.1",
+      "description": "GPT-5.1 from ICA",
+      "default_reasoning_level": "medium",
+      "base_instructions": "You are Codex, an AI coding agent. Follow the user's request, inspect relevant files before editing, make focused changes, use available tools appropriately, and verify completed work.",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Faster responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Deeper reasoning for complex tasks"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Maximum reasoning for difficult tasks"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      },
+      "experimental_supported_tools": [],
+      "priority": 0,
+      "upgrade": null
+    }
+  ]
+}
