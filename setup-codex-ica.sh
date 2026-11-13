@@ -5,15 +5,66 @@
 
 set -e
 
+DRY_RUN=false
+ASSUME_YES=false
+SKIP_KEY_PROMPT=false
+
+# Parse flags
+for arg in "$@"; do
+  case $arg in
+    --dry-run|-n|--preview)
+      DRY_RUN=true
+      shift
+      ;;
+    --yes|-y|--assume-yes)
+      ASSUME_YES=true
+      shift
+      ;;
+    --skip-key-prompt)
+      SKIP_KEY_PROMPT=true
+      shift
+      ;;
+  esac
+done
+
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+WHITE='\033[1;37m'
 NC='\033[0m'
 
+ask_approval() {
+  local prompt_text="$1"
+  local default_yes="${2:-true}"
+  
+  if [ "$ASSUME_YES" = true ]; then
+    return 0
+  fi
+  
+  local options="[Y/n]"
+  if [ "$default_yes" = false ]; then
+    options="[y/N]"
+  fi
+  
+  read -p "$prompt_text $options: " response
+  if [ -z "$response" ]; then
+    if [ "$default_yes" = true ]; then return 0; else return 1; fi
+  fi
+  
+  case "$response" in
+    [yY][eE][sS]|[yY])
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 echo -e "${CYAN}=================================================================${NC}"
-echo -e "${CYAN}     IBM Codex + IBM Consulting Advantage (ICA) Setup Tool     ${NC}"
-echo -e "${CYAN}                      macOS / Linux Edition                    ${NC}"
+echo -e "${WHITE}  IBM Codex + IBM Consulting Advantage (ICA) Setup Tool${NC}"
+echo -e "${CYAN}  macOS / Linux Edition with Dry-Run Preview & Explicit Confirmation${NC}"
 echo -e "${CYAN}=================================================================${NC}"
 
 CODEX_DIR="$HOME/.codex"
@@ -24,7 +75,7 @@ ENV_FILE="$CODEX_DIR/.env"
 TEST_DIR="$HOME/codex-ica-test"
 
 # 1. Check Prerequisites
-echo -e "\n${CYAN}[+] Checking prerequisites...${NC}"
+echo -e "\n${CYAN}[+] Inspecting current system environment...${NC}"
 check_cmd() {
     local name="$1"
     local cmd="$2"
@@ -43,31 +94,74 @@ check_cmd "Python 3" "python3"
 check_cmd "VS Code" "code"
 check_cmd "Codex CLI" "codex"
 
-# 2. Fix npm global permissions if on macOS and needed
+# Check existing items
+has_catalog=false; [ -f "$CATALOG_JSON_FILE" ] && has_catalog=true
+has_config=false; [ -f "$CONFIG_FILE" ] && has_config=true
+has_env=false; [ -f "$ENV_FILE" ] && has_env=true
+has_testdir=false; [ -d "$TEST_DIR" ] && has_testdir=true
+
+# 2. Planned Actions Summary (PREVIEW / DRY-RUN)
+echo -e "\n${YELLOW}+---------------------------------------------------------------+${NC}"
+echo -e "${YELLOW}|                 PLANNED ACTIONS PREVIEW                       |${NC}"
+echo -e "${YELLOW}+---------------------------------------------------------------+${NC}"
+
+echo -e "${WHITE} 1. Directory Structure:${NC}"
+echo -e "    - Model Catalog Folder : $MODEL_CATALOG_DIR $([ "$has_catalog" = true ] && echo '[Exists]' || echo '[Will Create]')"
+echo -e "    - Test Workspace Folder: $TEST_DIR $([ "$has_testdir" = true ] && echo '[Exists]' || echo '[Will Create]')"
+
+echo -e "\n${WHITE} 2. Configuration Files:${NC}"
+echo -e "    - Model Catalog ($CATALOG_JSON_FILE):"
+echo -e "      Will write 6 ICA models (gpt-advantage-assist, gpt-5.6-sol, etc.) in UTF-8."
+echo -e "    - Codex Config ($CONFIG_FILE):"
+echo -e "      Will $([ "$has_config" = true ] && echo 'merge with existing config' || echo 'create new config') placing top-level ICA settings at top."
+
+echo -e "\n${WHITE} 3. Secret & Environment Management:${NC}"
+echo -e "    - Secret File : $ENV_FILE (Will store ICA_API_KEY with chmod 600 permissions)"
+
+echo -e "\n${WHITE} 4. Process & Package Management:${NC}"
+if ! command -v codex >/dev/null 2>&1; then
+    echo -e "    - Software    : Will offer to install @openai/codex globally via npm"
+else
+    echo -e "    - Software    : Codex CLI already installed"
+fi
+echo -e "${YELLOW}+---------------------------------------------------------------+${NC}\n"
+
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${CYAN}[DRY-RUN MODE ACTIVATED] Execution plan validated.${NC}"
+    echo -e "${GREEN}[DRY-RUN] No changes were made to your system. To apply these changes, run without --dry-run.${NC}\n"
+    exit 0
+fi
+
+# ==============================================================================
+# EXPLICIT USER CONFIRMATION
+# ==============================================================================
+if ! ask_approval "Do you want to proceed with executing the planned setup actions?" true; then
+    echo -e "\n${YELLOW}[WARN] Setup cancelled by user. No files or settings were modified.${NC}\n"
+    exit 0
+fi
+
+# 3. Fix npm permissions if needed
 if command -v npm >/dev/null 2>&1; then
     NPM_PREFIX=$(npm config get prefix)
     if [[ "$NPM_PREFIX" == "/usr/local" || "$NPM_PREFIX" == "/usr" ]]; then
-        echo -e "\n${CYAN}[+] Configuring npm user prefix to ~/.npm-global to prevent permission errors...${NC}"
-        mkdir -p "$HOME/.npm-global"
-        npm config set prefix "$HOME/.npm-global"
-        
-        # Add to zshrc if not already present
-        if [[ -f "$HOME/.zshrc" ]]; then
-            if ! grep -q 'npm-global/bin' "$HOME/.zshrc"; then
-                echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$HOME/.zshrc"
-                echo -e " ${GREEN}[OK]${NC} Added ~/.npm-global/bin to ~/.zshrc"
+        if ask_approval "Configure npm user prefix to ~/.npm-global to prevent permission errors?" true; then
+            mkdir -p "$HOME/.npm-global"
+            npm config set prefix "$HOME/.npm-global"
+            if [[ -f "$HOME/.zshrc" ]]; then
+                if ! grep -q 'npm-global/bin' "$HOME/.zshrc"; then
+                    echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$HOME/.zshrc"
+                    echo -e " ${GREEN}[OK]${NC} Added ~/.npm-global/bin to ~/.zshrc"
+                fi
             fi
+            export PATH="$HOME/.npm-global/bin:$PATH"
         fi
-        export PATH="$HOME/.npm-global/bin:$PATH"
     fi
 fi
 
-# Check if Codex needs installation
+# 4. Install Codex CLI if missing
 if ! command -v codex >/dev/null 2>&1; then
     if command -v npm >/dev/null 2>&1; then
-        echo -e "\n${YELLOW}[!] Codex CLI is not installed.${NC}"
-        read -p "Would you like to install Codex CLI (@openai/codex) globally now? (Y/n): " install_codex
-        if [[ "$install_codex" != "n" && "$install_codex" != "N" ]]; then
+        if ask_approval "Codex CLI is missing. Install @openai/codex globally now via npm?" true; then
             echo "Running: npm install -g @openai/codex"
             npm install -g @openai/codex
             export PATH="$(npm config get prefix)/bin:$PATH"
@@ -75,14 +169,14 @@ if ! command -v codex >/dev/null 2>&1; then
     fi
 fi
 
-# 3. Create Directories
+# 5. Create Directories
 echo -e "\n${CYAN}[+] Creating configuration directories...${NC}"
 mkdir -p "$MODEL_CATALOG_DIR"
 mkdir -p "$TEST_DIR"
 echo -e " ${GREEN}[OK]${NC} Verified directory: $MODEL_CATALOG_DIR"
 echo -e " ${GREEN}[OK]${NC} Verified directory: $TEST_DIR"
 
-# 4. Write ica-models.json
+# 6. Write ica-models.json
 echo -e "\n${CYAN}[+] Writing ICA Model Catalog (ica-models.json)...${NC}"
 cat << 'EOF' > "$CATALOG_JSON_FILE"
 {
@@ -311,15 +405,13 @@ if command -v python3 >/dev/null 2>&1; then
     python3 -m json.tool "$CATALOG_JSON_FILE" >/dev/null && echo -e " ${GREEN}[OK]${NC} ica-models.json is valid JSON."
 fi
 
-# 5. Configure config.toml
+# 7. Configure config.toml
 echo -e "\n${CYAN}[+] Configuring config.toml...${NC}"
 
 TOP_SETTINGS="model = \"gpt-advantage-assist\"\nmodel_provider = \"ica\"\nmodel_catalog_json = \"$CATALOG_JSON_FILE\"\nmodel_reasoning_effort = \"medium\""
 PROVIDER_SECTION="[model_providers.ica]\nname = \"ICA\"\nbase_url = \"https://api.servicesessentials.ibm.com/v1\"\nwire_api = \"responses\"\nenv_key = \"ICA_API_KEY\"\nrequires_openai_auth = false"
 
 if [[ -f "$CONFIG_FILE" ]]; then
-    echo "Existing config.toml found. Merging configuration..."
-    # Filter out existing top-level keys
     grep -v -E '^(model|model_provider|model_catalog_json|model_reasoning_effort)[[:space:]]*=' "$CONFIG_FILE" | \
     awk '/^\[model_providers\.ica\]/{flag=1;next}/^\[/{flag=0} !flag' > "$CONFIG_FILE.tmp" || true
     
@@ -333,15 +425,14 @@ fi
 
 echo -e " ${GREEN}[OK]${NC} config.toml successfully written."
 
-# 6. Configure API Key
+# 8. Configure API Key
 echo -e "\n${CYAN}[+] Configuring ICA API Key (.env)...${NC}"
 api_key=""
 if [[ -f "$ENV_FILE" ]]; then
     existing_key=$(grep -E '^ICA_API_KEY=' "$ENV_FILE" | cut -d '=' -f2- || true)
     if [[ -n "$existing_key" && "$existing_key" != "REPLACE_WITH_YOUR_NEW_CODEX_CODING_AGENT_KEY" ]]; then
         echo -e " ${GREEN}[OK]${NC} Existing ICA_API_KEY found in $ENV_FILE."
-        read -p "Do you want to overwrite it with a new key? (y/N): " overwrite_key
-        if [[ "$overwrite_key" == "y" || "$overwrite_key" == "Y" ]]; then
+        if ask_approval "Do you want to overwrite it with a new key?" false; then
             api_key=""
         else
             api_key="$existing_key"
@@ -349,7 +440,7 @@ if [[ -f "$ENV_FILE" ]]; then
     fi
 fi
 
-if [[ -z "$api_key" ]]; then
+if [[ -z "$api_key" && "$SKIP_KEY_PROMPT" = false ]]; then
     echo -e "${YELLOW}To obtain your key:${NC}"
     echo " 1. Sign in to https://servicesessentials.ibm.com/"
     echo " 2. Select/Create your 2.0 team"
@@ -368,9 +459,9 @@ else
     echo -e " ${YELLOW}[WARN]${NC} No API key entered. You can add it manually to $ENV_FILE."
 fi
 
-# 7. Summary
+# 9. Summary
 echo -e "\n${GREEN}=================================================================${NC}"
-echo -e "${GREEN}           IBM Codex + ICA Setup Completed Successfully!         ${NC}"
+echo -e "${WHITE}           IBM Codex + ICA Setup Completed Successfully!         ${NC}"
 echo -e "${GREEN}=================================================================${NC}"
 echo -e "Configuration files:"
 echo " - Model Catalog:  $CATALOG_JSON_FILE"

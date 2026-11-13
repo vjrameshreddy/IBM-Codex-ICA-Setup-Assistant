@@ -3,6 +3,12 @@
 # ==============================================================================
 [CmdletBinding()]
 param(
+    [Alias("Preview", "Plan")]
+    [switch]$DryRun,
+
+    [Alias("AssumeYes")]
+    [switch]$Yes,
+
     [switch]$SkipKeyPrompt,
     [switch]$NonInteractive
 )
@@ -29,22 +35,47 @@ function Write-ErrorMsg {
     Write-Host " [ERROR] $Text" -ForegroundColor Red
 }
 
-Clear-Host
-Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "     IBM Codex + IBM Consulting Advantage (ICA) Setup Tool     " -ForegroundColor White
-Write-Host "                      Windows Edition                          " -ForegroundColor DarkCyan
-Write-Host "=================================================================" -ForegroundColor Cyan
+function Write-HeaderBox {
+    param([string]$Title, [string]$Subtitle)
+    Write-Host "`n=================================================================" -ForegroundColor Cyan
+    Write-Host "  $Title" -ForegroundColor White
+    if ($Subtitle) {
+        Write-Host "  $Subtitle" -ForegroundColor DarkCyan
+    }
+    Write-Host "=================================================================" -ForegroundColor Cyan
+}
 
-# 1. Environment & Path Setup
+function Ask-UserApproval {
+    param([string]$PromptText, [bool]$DefaultYes = $true)
+    
+    if ($Yes -or $NonInteractive) {
+        return $true
+    }
+    
+    $options = if ($DefaultYes) { "[Y/n]" } else { "[y/N]" }
+    $response = Read-Host "$PromptText $options"
+    
+    if ([string]::IsNullOrWhiteSpace($response)) {
+        return $DefaultYes
+    }
+    
+    return ($response.Trim().ToLower() -eq 'y' -or $response.Trim().ToLower() -eq 'yes')
+}
+
+Clear-Host
+Write-HeaderBox "IBM Codex + IBM Consulting Advantage (ICA) Setup Tool" "Windows Edition with Dry-Run Preview & Explicit Confirmation"
+
+# 1. Environment & Path Definitions
 $CodexDir = Join-Path $HOME ".codex"
 $ModelCatalogDir = Join-Path $CodexDir "model-catalog"
 $CatalogJsonFile = Join-Path $ModelCatalogDir "ica-models.json"
 $ConfigFile = Join-Path $CodexDir "config.toml"
 $EnvFile = Join-Path $CodexDir ".env"
 $TestDir = Join-Path $HOME "codex-ica-test"
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 # 2. Check Prerequisites
-Write-Step "Checking prerequisites..."
+Write-Step "Inspecting current system environment..."
 
 $Prereqs = @{
     "Node.js" = "node -v"
@@ -54,69 +85,51 @@ $Prereqs = @{
     "VS Code" = "code --version"
 }
 
-$MissingTools = @()
-
+$ToolStatus = @{}
 foreach ($Tool in $Prereqs.Keys) {
     try {
         $cmd = $Prereqs[$Tool]
         $output = Invoke-Expression $cmd 2>$null
         if ($LASTEXITCODE -eq 0 -and $output) {
-            Write-Success "$Tool found: $output"
+            $ToolStatus[$Tool] = $output.Trim()
+            Write-Success "$Tool found: $($ToolStatus[$Tool])"
         } else {
+            $ToolStatus[$Tool] = $null
             Write-WarningMsg "$Tool not found or not in PATH."
-            $MissingTools += $Tool
         }
     } catch {
+        $ToolStatus[$Tool] = $null
         Write-WarningMsg "$Tool is missing."
-        $MissingTools += $Tool
     }
 }
 
-# Check Codex CLI specifically
-$CodexInstalled = $false
+# Check Codex CLI
+$CodexVer = $null
 try {
-    $codexVer = Invoke-Expression "codex --version" 2>$null
-    if ($LASTEXITCODE -eq 0 -and $codexVer) {
-        Write-Success "Codex CLI found: $codexVer"
-        $CodexInstalled = $true
+    $codexOut = Invoke-Expression "codex --version" 2>$null
+    if ($LASTEXITCODE -eq 0 -and $codexOut) {
+        $CodexVer = $codexOut.Trim()
+        Write-Success "Codex CLI found: $CodexVer"
     }
 } catch {}
 
-if (-not $CodexInstalled) {
-    Write-WarningMsg "Codex CLI (@openai/codex) is not installed."
-    if (Get-Command npm -ErrorAction SilentlyContinue) {
-        $InstallCodex = "Y"
-        if (-not $NonInteractive) {
-            $InstallCodex = Read-Host "Would you like to install Codex CLI globally now via npm? (Y/n)"
-        }
-        if ($InstallCodex -ne "n" -and $InstallCodex -ne "N") {
-            Write-Host "Installing @openai/codex globally..." -ForegroundColor Gray
-            npm install -g @openai/codex
-            if ($LASTEXITCODE -eq 0) {
-                Write-Success "Codex CLI installed successfully."
-                $CodexInstalled = $true
-            } else {
-                Write-ErrorMsg "Failed to install Codex CLI. You may need to run PowerShell as normal user and ensure npm is configured."
-            }
-        }
-    }
+if (-not $CodexVer) {
+    Write-WarningMsg "Codex CLI (@openai/codex) is not currently installed."
 }
 
-# 3. Create .codex and model-catalog folders
-Write-Step "Creating configuration directories..."
-if (-not (Test-Path $ModelCatalogDir)) {
-    New-Item -ItemType Directory -Force -Path $ModelCatalogDir | Out-Null
-}
-Write-Success "Directory verified: $ModelCatalogDir"
+# Check running background daemons
+$RunningDaemons = @()
+try {
+    $RunningDaemons = Get-Process -Name 'codex', 'node_repl' -ErrorAction SilentlyContinue
+} catch {}
 
-if (-not (Test-Path $TestDir)) {
-    New-Item -ItemType Directory -Force -Path $TestDir | Out-Null
-}
-Write-Success "Test directory verified: $TestDir"
+# Check existing configuration files
+$HasCatalog = Test-Path $CatalogJsonFile
+$HasConfig = Test-Path $ConfigFile
+$HasEnv = Test-Path $EnvFile
+$HasTestDir = Test-Path $TestDir
 
-# 4. Generate ica-models.json
-Write-Step "Writing ICA Model Catalog (ica-models.json)..."
-
+# 3. Model Catalog Definition (Pure RFC 8259 JSON)
 $ModelCatalogContent = @'
 {
   "models": [
@@ -340,20 +353,7 @@ $ModelCatalogContent = @'
 }
 '@
 
-$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-[System.IO.File]::WriteAllText($CatalogJsonFile, $ModelCatalogContent, $Utf8NoBom)
-
-# Validate JSON
-try {
-    $null = Get-Content $CatalogJsonFile -Raw | ConvertFrom-Json
-    Write-Success "ica-models.json created and validated successfully."
-} catch {
-    Write-ErrorMsg "Failed to parse generated ica-models.json: $_"
-}
-
-# 5. Configure config.toml
-Write-Step "Configuring config.toml..."
-
+# 4. Compute Merged config.toml Content
 $EscapedCatalogPath = $CatalogJsonFile.Replace('\', '\\')
 
 $TopLevelSettings = @"
@@ -372,47 +372,148 @@ env_key = "ICA_API_KEY"
 requires_openai_auth = false
 "@
 
+$FinalConfigContent = ""
 if (Test-Path $ConfigFile) {
-    Write-Host "Existing config.toml found. Merging configuration..." -ForegroundColor Gray
     $ExistingLines = Get-Content $ConfigFile
-    
-    # Filter out existing top-level ICA keys and old provider section to cleanly update
     $FilteredLines = @()
     $InIcaSection = $false
     
     foreach ($Line in $ExistingLines) {
         $trimmed = $Line.Trim()
-        
         if ($trimmed -match '^\[model_providers\.ica\]') {
             $InIcaSection = $true
             continue
         } elseif ($InIcaSection -and $trimmed -match '^\[') {
             $InIcaSection = $false
         }
-        
-        if ($InIcaSection) {
-            continue
-        }
-        
-        if ($trimmed -match '^(model|model_provider|model_catalog_json|model_reasoning_effort)\s*=') {
-            continue
-        }
-        
+        if ($InIcaSection) { continue }
+        if ($trimmed -match '^(model|model_provider|model_catalog_json|model_reasoning_effort)\s*=') { continue }
         $FilteredLines += $Line
     }
-    
-    # Reassemble: Top-level settings first, then remaining lines, then [model_providers.ica]
-    $NewContent = "$TopLevelSettings`r`n`r`n" + ($FilteredLines -join "`r`n") + "`r`n`r`n$ProviderSection`r`n"
-    [System.IO.File]::WriteAllText($ConfigFile, $NewContent, $Utf8NoBom)
+    $FinalConfigContent = "$TopLevelSettings`r`n`r`n" + ($FilteredLines -join "`r`n") + "`r`n`r`n$ProviderSection`r`n"
 } else {
-    $NewContent = "$TopLevelSettings`r`n`r`n$ProviderSection`r`n"
-    [System.IO.File]::WriteAllText($ConfigFile, $NewContent, $Utf8NoBom)
+    $FinalConfigContent = "$TopLevelSettings`r`n`r`n$ProviderSection`r`n"
 }
 
+# ==============================================================================
+# PREVIEW / DRY-RUN SUMMARY (REQUIRED BEHAVIOR)
+# ==============================================================================
+Write-Host "`n+---------------------------------------------------------------+" -ForegroundColor Yellow
+Write-Host "|                 PLANNED ACTIONS PREVIEW                       |" -ForegroundColor Yellow
+Write-Host "+---------------------------------------------------------------+" -ForegroundColor Yellow
+
+Write-Host " 1. Directory Structure:" -ForegroundColor White
+Write-Host "    - Model Catalog Folder : $ModelCatalogDir $(if ($HasCatalog) { '[Exists]' } else { '[Will Create]' })" -ForegroundColor Gray
+Write-Host "    - Test Workspace Folder: $TestDir $(if ($HasTestDir) { '[Exists]' } else { '[Will Create]' })" -ForegroundColor Gray
+
+Write-Host "`n 2. Configuration Files:" -ForegroundColor White
+Write-Host "    - Model Catalog ($CatalogJsonFile):" -ForegroundColor Gray
+Write-Host "      Will write 6 ICA models (gpt-advantage-assist, gpt-5.6-sol, etc.) in UTF-8 without BOM." -ForegroundColor DarkGray
+Write-Host "    - Codex Config ($ConfigFile):" -ForegroundColor Gray
+Write-Host "      Will $(if ($HasConfig) { 'merge with existing config' } else { 'create new config' }) placing top-level ICA settings at top." -ForegroundColor DarkGray
+
+Write-Host "`n 3. Secret & Environment Management:" -ForegroundColor White
+Write-Host "    - Secret File : $EnvFile (Will store ICA_API_KEY with owner-only NTFS permissions)" -ForegroundColor Gray
+Write-Host "    - Environment : Will register ICA_API_KEY in Windows User Environment variables" -ForegroundColor Gray
+
+Write-Host "`n 4. Process & Extension Management:" -ForegroundColor White
+if (-not $CodexVer) {
+    Write-Host "    - Software    : Will offer to install @openai/codex globally via npm" -ForegroundColor Yellow
+} else {
+    Write-Host "    - Software    : Codex CLI already installed ($CodexVer)" -ForegroundColor Gray
+}
+if ($RunningDaemons.Count -gt 0) {
+    Write-Host "    - Daemons     : Will terminate $($RunningDaemons.Count) running codex/node_repl processes to reload environment" -ForegroundColor Yellow
+} else {
+    Write-Host "    - Daemons     : No stale background daemons running" -ForegroundColor Gray
+}
+
+Write-Host "+---------------------------------------------------------------+`n" -ForegroundColor Yellow
+
+# If Dry-Run requested, display detailed preview and exit
+if ($DryRun) {
+    Write-Host "[DRY-RUN MODE ACTIVATED] Detailed file preview:" -ForegroundColor Cyan
+    Write-Host "`n--- config.toml Preview ---" -ForegroundColor DarkCyan
+    Write-Host $FinalConfigContent -ForegroundColor Gray
+    Write-Host "--- End config.toml Preview ---`n" -ForegroundColor DarkCyan
+
+    Write-Host "[DRY-RUN] No changes were made to your system. To apply these changes, run without -DryRun." -ForegroundColor Green
+    exit 0
+}
+
+# ==============================================================================
+# EXPLICIT USER CONFIRMATION (REQUIRED BEHAVIOR)
+# ==============================================================================
+$Proceed = Ask-UserApproval "Do you want to proceed with executing the planned setup actions?" $true
+
+if (-not $Proceed) {
+    Write-WarningMsg "Setup cancelled by user. No files or settings were modified."
+    exit 0
+}
+
+# ------------------------------------------------------------------------------
+# STEP 1: Install Codex CLI (if missing) with explicit confirmation
+# ------------------------------------------------------------------------------
+if (-not $CodexVer) {
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        $InstallCodex = Ask-UserApproval "Codex CLI (@openai/codex) is missing. Install globally now via npm?" $true
+        if ($InstallCodex) {
+            Write-Step "Installing @openai/codex globally via npm..."
+            npm install -g @openai/codex
+            if ($LASTEXITCODE -eq 0) {
+                Write-Success "Codex CLI installed successfully."
+                $CodexVer = "Installed"
+            } else {
+                Write-ErrorMsg "Failed to install Codex CLI. Please check your npm permissions."
+            }
+        }
+    } else {
+        Write-WarningMsg "npm is not installed. Please install Node.js LTS from https://nodejs.org/ first."
+    }
+}
+
+# ------------------------------------------------------------------------------
+# STEP 2: Create Directories
+# ------------------------------------------------------------------------------
+Write-Step "Creating directories..."
+if (-not (Test-Path $ModelCatalogDir)) {
+    New-Item -ItemType Directory -Force -Path $ModelCatalogDir | Out-Null
+    Write-Success "Created: $ModelCatalogDir"
+} else {
+    Write-Success "Verified: $ModelCatalogDir"
+}
+
+if (-not (Test-Path $TestDir)) {
+    New-Item -ItemType Directory -Force -Path $TestDir | Out-Null
+    Write-Success "Created: $TestDir"
+} else {
+    Write-Success "Verified: $TestDir"
+}
+
+# ------------------------------------------------------------------------------
+# STEP 3: Write ica-models.json (RFC 8259 Pure UTF-8 without BOM)
+# ------------------------------------------------------------------------------
+Write-Step "Writing ICA Model Catalog (ica-models.json)..."
+[System.IO.File]::WriteAllText($CatalogJsonFile, $ModelCatalogContent, $Utf8NoBom)
+
+try {
+    $null = Get-Content $CatalogJsonFile -Raw | ConvertFrom-Json
+    Write-Success "ica-models.json created and validated successfully."
+} catch {
+    Write-ErrorMsg "Failed to validate generated ica-models.json: $_"
+}
+
+# ------------------------------------------------------------------------------
+# STEP 4: Configure config.toml
+# ------------------------------------------------------------------------------
+Write-Step "Configuring config.toml..."
+[System.IO.File]::WriteAllText($ConfigFile, $FinalConfigContent, $Utf8NoBom)
 Write-Success "config.toml updated with ICA model provider and catalog path."
 
-# 6. Secure API Key Configuration
-Write-Step "Configuring ICA API Key (.env)..."
+# ------------------------------------------------------------------------------
+# STEP 5: Secure API Key Configuration
+# ------------------------------------------------------------------------------
+Write-Step "Configuring ICA API Key..."
 
 if ($SkipKeyPrompt) {
     Write-WarningMsg "Skipping API key prompt as requested."
@@ -422,9 +523,9 @@ if ($SkipKeyPrompt) {
     if (Test-Path $EnvFile) {
         $ExistingEnv = Get-Content $EnvFile -Raw -ErrorAction SilentlyContinue
         if ($ExistingEnv -match 'ICA_API_KEY=\s*(\S+)' -and $Matches[1] -ne 'REPLACE_WITH_YOUR_NEW_CODEX_CODING_AGENT_KEY') {
-            Write-Success "An existing ICA_API_KEY was found in .env."
-            $UpdateKey = Read-Host "Do you want to overwrite it with a new key? (y/N)"
-            if ($UpdateKey -ne "y" -and $UpdateKey -ne "Y") {
+            Write-Success "An existing ICA_API_KEY was found in $EnvFile."
+            $Overwrite = Ask-UserApproval "Do you want to overwrite it with a new key?" $false
+            if (-not $Overwrite) {
                 $ApiKey = $Matches[1]
             }
         }
@@ -433,22 +534,24 @@ if ($SkipKeyPrompt) {
     if (-not $ApiKey) {
         Write-Host "To obtain your Coding Agent API key:" -ForegroundColor Cyan
         Write-Host " 1. Sign in to https://servicesessentials.ibm.com/" -ForegroundColor Gray
-        Write-Host " 2. Select/Create your 2.0 team (e.g., '<YourName> Codex Training')" -ForegroundColor Gray
-        Write-Host " 3. Navigate to Settings > API Keys > Coding Agents > Generate Coding Agent API Key" -ForegroundColor Gray
-        Write-Host " 4. Copy the key specifically from the 'Codex' row (NOT general ICA key)" -ForegroundColor Gray
+        Write-Host " 2. Select/Create your 2.0 team (e.g. '<YourName> Codex Training')" -ForegroundColor Gray
+        Write-Host " 3. Settings > API Keys > Coding Agents > Generate Coding Agent API Key" -ForegroundColor Gray
+        Write-Host " 4. Copy the key from the 'Codex' row (NOT general ICA key)" -ForegroundColor Gray
         Write-Host ""
         
         $SecureString = Read-Host "Paste your Codex Coding Agent API Key (input will be hidden)" -AsSecureString
-        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureString)
-        $ApiKey = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-        [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+        if ($SecureString) {
+            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureString)
+            $ApiKey = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+            [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+        }
     }
     
     if (-not [string]::IsNullOrWhiteSpace($ApiKey)) {
         $EnvContent = "ICA_API_KEY=$ApiKey`r`n"
         [System.IO.File]::WriteAllText($EnvFile, $EnvContent, $Utf8NoBom)
         
-        # Apply strict file permissions (icacls)
+        # Apply strict NTFS owner-only permissions
         try {
             $currentUser = $env:USERNAME
             & icacls "$EnvFile" /inheritance:r /grant:r "${currentUser}:F" | Out-Null
@@ -463,39 +566,49 @@ if ($SkipKeyPrompt) {
             [System.Environment]::SetEnvironmentVariable('ICA_API_KEY', $ApiKey, 'User')
             Write-Success "Registered ICA_API_KEY user environment variable for VS Code and GUI apps."
         } catch {}
-
-        # Terminate any stale background daemon server so it restarts fresh with the new key
-        try {
-            Get-Process -Name 'codex', 'node_repl' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-            Write-Success "Stopped existing background Codex daemon processes to refresh environment."
-        } catch {}
     } else {
-        Write-WarningMsg "No API key was entered. You will need to manually edit $EnvFile later."
+        Write-WarningMsg "No API key was entered. You will need to manually configure $EnvFile later."
     }
 }
 
-# 7. Final Summary and Verification Instructions
-Write-Host "`n=================================================================" -ForegroundColor Green
-Write-Host "           IBM Codex + ICA Setup Completed Successfully!         " -ForegroundColor White
-Write-Host "=================================================================" -ForegroundColor Green
-Write-Host "`nConfiguration files created:" -ForegroundColor Cyan
+# ------------------------------------------------------------------------------
+# STEP 6: Process Management (Terminate Stale Daemons with Confirmation)
+# ------------------------------------------------------------------------------
+if ($RunningDaemons.Count -gt 0) {
+    Write-Step "Background Process Management..."
+    $KillDaemons = Ask-UserApproval "Terminate $($RunningDaemons.Count) stale background Codex process(es) to reload environment?" $true
+    if ($KillDaemons) {
+        try {
+            Get-Process -Name 'codex', 'node_repl' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Write-Success "Stopped background Codex daemons. They will restart automatically with fresh environment."
+        } catch {
+            Write-WarningMsg "Could not stop daemon processes: $_"
+        }
+    }
+}
+
+# ------------------------------------------------------------------------------
+# STEP 7: Completion & Next Steps
+# ------------------------------------------------------------------------------
+Write-HeaderBox "IBM Codex + ICA Setup Completed Successfully!"
+
+Write-Host "Configuration files:" -ForegroundColor Cyan
 Write-Host " - Model Catalog:  $CatalogJsonFile" -ForegroundColor Gray
 Write-Host " - Codex Config:   $ConfigFile" -ForegroundColor Gray
-Write-Host " - API Key (.env): $EnvFile" -ForegroundColor Gray
+Write-Host " - API Key:        $EnvFile" -ForegroundColor Gray
 Write-Host " - Test Directory: $TestDir" -ForegroundColor Gray
 
 Write-Host "`nNext Steps to Verify:" -ForegroundColor Yellow
-Write-Host " 1. RELOAD ENVIRONMENT in this current PowerShell window (run this command):" -ForegroundColor White
+Write-Host " 1. Reload environment in this current PowerShell window (run this command):" -ForegroundColor White
 Write-Host "      `$env:ICA_API_KEY = [System.Environment]::GetEnvironmentVariable('ICA_API_KEY', 'User')" -ForegroundColor Cyan
-Write-Host "    (Or close and open a brand NEW PowerShell window so it loads automatically)" -ForegroundColor Gray
 Write-Host " 2. Open terminal in test folder and run Codex CLI:" -ForegroundColor White
 Write-Host "      cd `"$TestDir`"" -ForegroundColor Cyan
 Write-Host "      codex" -ForegroundColor Cyan
 Write-Host "    Inside Codex, check status by typing:" -ForegroundColor White
 Write-Host "      /status" -ForegroundColor Cyan
 Write-Host "    (It should display: provider: ica, model: gpt-advantage-assist)" -ForegroundColor Gray
-Write-Host " 3. For VS Code:" -ForegroundColor White
+Write-Host " 3. For Visual Studio Code:" -ForegroundColor White
 Write-Host "    - Install 'Codex - OpenAI''s coding agent' (OpenAI.chatgpt) extension." -ForegroundColor Gray
-Write-Host "    - Open the test folder: `"$TestDir`" and Trust it." -ForegroundColor Gray
-Write-Host "    - Use the Codex tab to send a test message." -ForegroundColor Gray
+Write-Host "    - Open folder: `"$TestDir`" and click Trust." -ForegroundColor Gray
+Write-Host "    - Open the Codex tab to start coding with ICA!" -ForegroundColor Gray
 Write-Host "=================================================================`n" -ForegroundColor Green

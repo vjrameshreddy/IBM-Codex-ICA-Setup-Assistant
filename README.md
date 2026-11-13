@@ -17,19 +17,35 @@ A comprehensive setup, automation, and guidance toolkit to configure **OpenAI Co
 
 ## ⚡ Fast-Track: Automated Installation
 
-### 1. On Windows (PowerShell)
-Open PowerShell as your standard user and run:
-```powershell
-powershell -ExecutionPolicy Bypass -File .\setup-codex-ica.ps1
-```
-*The script automatically verifies prerequisites, writes `ica-models.json`, merges `config.toml`, masks your API key during input, applies owner-only permissions, and refreshes background daemons.*
+### 1. Preview / Dry-Run (No Changes Made)
+Inspect planned changes, file diffs, and directory creations before executing:
 
-### 2. On macOS (Terminal - zsh)
-Open Terminal and run:
-```bash
-chmod +x setup-codex-ica.sh
-./setup-codex-ica.sh
-```
+- **Windows (PowerShell)**:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File .\setup-codex-ica.ps1 -DryRun
+  ```
+- **macOS (Terminal)**:
+  ```bash
+  chmod +x setup-codex-ica.sh && ./setup-codex-ica.sh --dry-run
+  ```
+
+---
+
+### 2. Run Automated Installation (With Interactive User Confirmation)
+The script provides a clear action preview and requires your explicit confirmation before applying changes, storing credentials, or terminating daemon processes:
+
+- **Windows (PowerShell)**:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File .\setup-codex-ica.ps1
+  ```
+  *(To bypass interactive confirmation in automated CI workflows, use `-Yes`)*
+
+- **macOS (Terminal)**:
+  ```bash
+  chmod +x setup-codex-ica.sh
+  ./setup-codex-ica.sh
+  ```
+  *(To bypass interactive confirmation in automated CI workflows, use `--yes`)*
 
 ---
 
@@ -79,6 +95,22 @@ Inside the interactive Codex prompt:
 7. Verify by running the generated program in your terminal:
    ```powershell
    python hello.py
+   ```
+
+---
+
+### Step 3: (Optional) ChatGPT Desktop App Integration (Section 3 of Guide)
+Codex is built directly into the official ChatGPT Desktop application:
+1. **Download App**: Get the desktop app from [chatgpt.com/download](https://chatgpt.com/download/) (Windows installer or macOS Apple Silicon).
+2. **Credential Sharing**: The desktop app automatically reads the same `~/.codex/config.toml` and `ICA_API_KEY` configured in Section 1.
+3. **Restart App**: Fully quit the desktop app (<kbd>Cmd</kbd>+<kbd>Q</kbd> on Mac, or right-click system tray > Quit on Windows) and reopen it.
+4. **Account Separation Rules**:
+   - Keep your personal ChatGPT account separate from IBM work.
+   - Signing into ChatGPT with an IBM email is **not** the same as using an ICA API key.
+   - Keep full-access permissions turned off.
+5. **Verify**: Open a Codex conversation in the desktop app on your test workspace and send:
+   ```text
+   Say hello in one sentence. Do not create or modify any files.
    ```
 
 ---
