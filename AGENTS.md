@@ -11,6 +11,8 @@ This file provides guidance to agents when working with code in this repository.
 - **Secret Permissions**: Any file holding `ICA_API_KEY` (`.env` or `.env.bak.*`) must use owner-only permissions: `icacls $path /inheritance:r /grant:r "${env:USERNAME}:F"` on Windows, `chmod 600` on macOS/Linux.
 - **ChatGPT Desktop App Shared Scope**: The desktop app reads `~/.codex/config.toml` directly. Do not mix personal ChatGPT accounts with the work `~/.codex` profile.
 - **Standalone Web Architecture**: `index.html` is zero-dependency (no external CDNs/fonts/scripts) to work completely offline in air-gapped or restricted IBM intranet environments.
+- **IBM Enterprise Workstation Banner**: `index.html` repeats the same "🏢 IBM Enterprise Workstation Requirement (PC@IBM / Mac@IBM)" callout in three tabs: Fast-Track (`tab-auto`), Step 1 (`tab-prereqs`), and Step 4 (`tab-clients`). Keep the three copies identical when editing.
+- **Script Flag Parity**: `setup-codex-ica.ps1` (`-DryRun -Yes -AutoBackup -Overwrite -InstallChatGPT -SkipKeyPrompt -NonInteractive`) and `setup-codex-ica.sh` (`--dry-run --yes --auto-backup --overwrite --install-chatgpt --skip-key-prompt`) must stay in sync. There is no automated test suite; validate with the dry-run and syntax commands below.
 
 ## Essential Commands
 
