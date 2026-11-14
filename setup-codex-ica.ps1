@@ -1,5 +1,5 @@
 # ==============================================================================
-# IBM Codex + ICA (IBM Consulting Advantage) Automated Setup Script for Windows
+# IBM ICA (IBM Consulting Advantage) + Codex Automated Setup Script for Windows
 # ==============================================================================
 [CmdletBinding()]
 param(
@@ -120,7 +120,7 @@ function Prompt-FileAction {
 }
 
 Clear-Host
-Write-HeaderBox "IBM Codex + IBM Consulting Advantage (ICA) Setup Tool" "Windows Edition with Dry-Run Preview & Explicit Confirmation"
+Write-HeaderBox "IBM ICA (IBM Consulting Advantage) + Codex Setup Tool" "Windows Edition with Dry-Run Preview & Explicit Confirmation"
 
 # 1. Environment & Path Definitions
 $CodexDir = Join-Path $HOME ".codex"
@@ -728,7 +728,7 @@ if ($RunningDaemons.Count -gt 0) {
 # ------------------------------------------------------------------------------
 # STEP 7: Completion & Next Steps
 # ------------------------------------------------------------------------------
-Write-HeaderBox "IBM Codex + ICA Setup Completed Successfully!"
+Write-HeaderBox "IBM ICA + Codex Setup Completed Successfully!"
 
 Write-Host "Configuration files:" -ForegroundColor Cyan
 Write-Host " - Model Catalog:  $CatalogJsonFile" -ForegroundColor Gray

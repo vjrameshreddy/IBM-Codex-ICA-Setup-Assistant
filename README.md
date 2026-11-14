@@ -1,4 +1,4 @@
-# IBM Codex + IBM Consulting Advantage (ICA) Integration Toolkit
+# IBM ICA (IBM Consulting Advantage) + Codex Integration Toolkit
 
 A comprehensive setup, automation, and guidance toolkit to configure **OpenAI Codex** (CLI, Visual Studio Code extension, and ChatGPT desktop app) to connect securely with **IBM Consulting Advantage (ICA 2.0)** on **Windows** and **macOS (Apple Silicon)**.
 

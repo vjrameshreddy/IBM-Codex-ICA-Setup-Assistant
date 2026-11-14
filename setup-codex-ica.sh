@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# IBM Codex + ICA (IBM Consulting Advantage) Automated Setup Script for macOS / Linux
+# IBM ICA (IBM Consulting Advantage) + Codex Automated Setup Script for macOS / Linux
 # ==============================================================================
 
 set -e
@@ -133,7 +133,7 @@ prompt_file_action() {
 }
 
 echo -e "${CYAN}=================================================================${NC}"
-echo -e "${WHITE}  IBM Codex + IBM Consulting Advantage (ICA) Setup Tool${NC}"
+echo -e "${WHITE}  IBM ICA (IBM Consulting Advantage) + Codex Setup Tool${NC}"
 echo -e "${CYAN}  macOS / Linux Edition with Dry-Run Preview & Explicit Confirmation${NC}"
 echo -e "${CYAN}=================================================================${NC}"
 
@@ -826,7 +826,7 @@ fi
 
 # 9. Summary
 echo -e "\n${GREEN}=================================================================${NC}"
-echo -e "${WHITE}           IBM Codex + ICA Setup Completed Successfully!         ${NC}"
+echo -e "${WHITE}           IBM ICA + Codex Setup Completed Successfully!         ${NC}"
 echo -e "${GREEN}=================================================================${NC}"
 echo -e "Configuration files:"
 echo " - Model Catalog:  $CATALOG_JSON_FILE"

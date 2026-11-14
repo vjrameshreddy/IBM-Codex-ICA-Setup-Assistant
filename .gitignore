@@ -1,0 +1,77 @@
+﻿# ==============================================================================
+# IBM ICA + Codex Integration Toolkit - .gitignore
+# ==============================================================================
+
+# 1. Secrets, Credentials & Environment Files (Mandatory IBM Security Policy)
+.env
+.env.*
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.cert
+*.pfx
+
+# 2. Configuration Backups & Temporary Files
+*.bak
+*.bak.*
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.backup
+config.toml.bak*
+ica-models.json.bak*
+
+# 3. Local Runtime & Local Codex Directories
+.codex/
+.cache/
+.bob/tmp/
+
+# 4. Logs & Test Output Artifacts
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+hello.py
+
+# 5. Node.js & npm Dependencies
+node_modules/
+.npm/
+.npm-global/
+
+# 6. Python Artifacts & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+.pytest_cache/
+
+# 7. OS Metadata & System Caches
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# 8. Editor & IDE Settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
