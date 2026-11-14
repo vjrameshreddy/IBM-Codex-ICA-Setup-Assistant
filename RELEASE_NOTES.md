@@ -12,13 +12,15 @@ Major release adding automated file backup and overwrite engines, unified brandi
 ### 🚀 Features Added & Enhanced
 - **Auto-Backup & Overwrite Engine**:
   - Implemented timestamped automatic backups (`*.bak.YYYYMMDD_HHMMSS`) for `config.toml`, `.env`, and `ica-models.json`.
-  - Added CLI flags: `-AutoBackup` / `--auto-backup`, `-Overwrite` / `--overwrite`, `-DryRun` / `--dry-run`, `-Yes` / `--yes`.
+  - Added CLI flags: `-AutoBackup` / `--auto-backup`, `-Overwrite` / `--overwrite`, `-DryRun` / `--dry-run`, `-Yes` / `--yes`, `-InstallChatGPT` / `--install-chatgpt`.
+  - Enabled true 1-click non-blocking unattended execution when `-AutoBackup` or `-Overwrite` is specified.
 - **Branding Alignment**:
   - Standardized project title and interface branding to **IBM ICA (IBM Consulting Advantage) + Codex** across scripts, web guides, documentation, and configuration headers.
 - **5-Step Setup & Verification Roadmap**:
   - Restructured the setup lifecycle into 5 distinct, sequential steps (1: Prerequisites, 2: ICA Portal & Key, 3: Configuration, 4: Client Setup, 5: Verification & Testing).
   - Added 1-click `✓ Mark All 5 Steps Done (100%)` button in `index.html` for Fast-Track script users.
   - Added detailed verification sections for Codex CLI, VS Code extension (`OpenAI.chatgpt`), and ChatGPT Desktop app.
+  - Added IBM Enterprise Workstation guidance enforcing Visual Studio Code installation via official internal software repositories (**`PC@IBM`** for Windows / **`Mac@IBM`** for macOS).
 - **Agent Rules & Governance**:
   - Added root [`AGENTS.md`](AGENTS.md) and mode-specific rules in `.bob/rules-agent/AGENTS.md`, `.bob/rules-ask/AGENTS.md`, and `.bob/rules-plan/AGENTS.md`.
 - **Repository Hygiene & `.gitignore`**:

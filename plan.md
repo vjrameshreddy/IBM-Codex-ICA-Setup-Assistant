@@ -64,6 +64,7 @@ The **IBM ICA + Codex Integration Toolkit** bridges **OpenAI Codex** (CLI, VS Co
 2. **Deterministic Previews**: All automation scripts must provide `-DryRun` / `--dry-run` to preview operations before making disk modifications.
 3. **Encoding Safety**: All file writes to `.codex` must bypass default BOM emitters to preserve compatibility with Rust-based parser runtimes.
 4. **Offline Resilience**: `index.html` operates without network calls or external font/script dependencies.
+5. **Enterprise Software Distribution**: Enforce installation of IDEs (Visual Studio Code) via official IBM internal software catalogs (**`PC@IBM`** for Windows / **`Mac@IBM`** for macOS) for automated compliance tracking and security patch management.
 
 ---
 

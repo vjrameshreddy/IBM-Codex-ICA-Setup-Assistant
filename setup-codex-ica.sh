@@ -10,6 +10,7 @@ DRY_RUN=false
 ASSUME_YES=false
 AUTO_BACKUP=false
 OVERWRITE=false
+INSTALL_CHATGPT=false
 SKIP_KEY_PROMPT=false
 
 # Parse flags
@@ -31,6 +32,10 @@ for arg in "$@"; do
       OVERWRITE=true
       shift
       ;;
+    --install-chatgpt)
+      INSTALL_CHATGPT=true
+      shift
+      ;;
     --skip-key-prompt)
       SKIP_KEY_PROMPT=true
       shift
@@ -49,8 +54,8 @@ ask_approval() {
   local prompt_text="$1"
   local default_yes="${2:-true}"
   
-  if [ "$ASSUME_YES" = true ]; then
-    return 0
+  if [ "$ASSUME_YES" = true ] || [ "$AUTO_BACKUP" = true ] || [ "$OVERWRITE" = true ]; then
+    if [ "$default_yes" = true ]; then return 0; else return 1; fi
   fi
   
   local options="[Y/n]"
@@ -150,11 +155,16 @@ echo -e "\n${CYAN}[+] Inspecting current system environment...${NC}"
 check_cmd() {
     local name="$1"
     local cmd="$2"
+    local hint="$3"
     if command -v $cmd >/dev/null 2>&1; then
         local ver=$($cmd --version 2>/dev/null || $cmd -v 2>/dev/null || echo "installed")
         echo -e " ${GREEN}[OK]${NC} $name found: $ver"
     else
-        echo -e " ${YELLOW}[WARN]${NC} $name is missing or not in PATH."
+        if [ -n "$hint" ]; then
+            echo -e " ${YELLOW}[WARN]${NC} $name is missing or not in PATH. ($hint)"
+        else
+            echo -e " ${YELLOW}[WARN]${NC} $name is missing or not in PATH."
+        fi
     fi
 }
 
@@ -162,7 +172,7 @@ check_cmd "Node.js" "node"
 check_cmd "npm" "npm"
 check_cmd "Git" "git"
 check_cmd "Python 3" "python3"
-check_cmd "VS Code" "code"
+check_cmd "VS Code" "code" "IBMers: Install via official 'Mac@IBM' internal software catalog"
 check_cmd "Codex CLI" "codex"
 
 # Check existing items
@@ -252,7 +262,16 @@ fi
 
 # 4b. Optional ChatGPT Desktop App Installation via brew
 if [ "$has_chatgpt_app" = false ] && command -v brew >/dev/null 2>&1; then
-    if ask_approval "Would you like to install the official ChatGPT Desktop App via brew?" false; then
+    should_install=false
+    if [ "$INSTALL_CHATGPT" = true ]; then
+        should_install=true
+    elif [ "$ASSUME_YES" = false ] && [ "$AUTO_BACKUP" = false ] && [ "$OVERWRITE" = false ]; then
+        if ask_approval "Would you like to install the official ChatGPT Desktop App via brew?" false; then
+            should_install=true
+        fi
+    fi
+
+    if [ "$should_install" = true ]; then
         echo "Running: brew install --cask chatgpt"
         brew install --cask chatgpt || echo -e " ${YELLOW}[WARN]${NC} brew install failed. You can install manually from https://chatgpt.com/download/ if permitted by IBM policy."
     fi

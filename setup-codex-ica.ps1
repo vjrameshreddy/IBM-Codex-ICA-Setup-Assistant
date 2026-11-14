@@ -12,6 +12,7 @@ param(
 
     [switch]$AutoBackup,
     [switch]$Overwrite,
+    [switch]$InstallChatGPT,
     [switch]$SkipKeyPrompt,
     [switch]$NonInteractive
 )
@@ -51,8 +52,8 @@ function Write-HeaderBox {
 function Ask-UserApproval {
     param([string]$PromptText, [bool]$DefaultYes = $true)
     
-    if ($Yes -or $NonInteractive) {
-        return $true
+    if ($Yes -or $NonInteractive -or $AutoBackup -or $Overwrite) {
+        return $DefaultYes
     }
     
     $options = if ($DefaultYes) { "[Y/n]" } else { "[y/N]" }
@@ -71,7 +72,7 @@ function Backup-ConfigFile {
         [string]$Description,
         [bool]$IsSecret = $false
     )
-    if (-not (Test-Path $Path)) { return $null }
+    if (-not (Test-Path $Path)) { return }
     
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $bakFile = "$Path.bak.$timestamp"
@@ -82,10 +83,8 @@ function Backup-ConfigFile {
             & icacls "$bakFile" /inheritance:r /grant:r "${currentUser}:F" 2>$null | Out-Null
         }
         Write-Success "Backup created for $Description -> $bakFile"
-        return $bakFile
     } catch {
         Write-WarningMsg "Could not backup $Description`: $_"
-        return $null
     }
 }
 
@@ -153,11 +152,19 @@ foreach ($Tool in $Prereqs.Keys) {
             Write-Success "$Tool found: $($ToolStatus[$Tool])"
         } else {
             $ToolStatus[$Tool] = $null
-            Write-WarningMsg "$Tool not found or not in PATH."
+            if ($Tool -eq "VS Code") {
+                Write-WarningMsg "VS Code not found or not in PATH. (IBMers: Install via official 'PC@IBM' internal software catalog)"
+            } else {
+                Write-WarningMsg "$Tool not found or not in PATH."
+            }
         }
     } catch {
         $ToolStatus[$Tool] = $null
-        Write-WarningMsg "$Tool is missing."
+        if ($Tool -eq "VS Code") {
+            Write-WarningMsg "VS Code is missing. (IBMers: Install via official 'PC@IBM' internal software catalog)"
+        } else {
+            Write-WarningMsg "$Tool is missing."
+        }
     }
 }
 
@@ -546,8 +553,14 @@ if (-not $CodexVer) {
 # STEP 1b: Optional ChatGPT Desktop App Installation (with explicit confirmation)
 # ------------------------------------------------------------------------------
 if (-not $HasChatGPTDesktop -and (Get-Command winget -ErrorAction SilentlyContinue)) {
-    $InstallDesktop = Ask-UserApproval "Would you like to install the official ChatGPT Desktop App via winget?" $false
-    if ($InstallDesktop) {
+    $shouldInstall = $false
+    if ($InstallChatGPT) {
+        $shouldInstall = $true
+    } elseif (-not ($Yes -or $NonInteractive -or $AutoBackup -or $Overwrite)) {
+        $shouldInstall = Ask-UserApproval "Would you like to install the official ChatGPT Desktop App via winget?" $false
+    }
+
+    if ($shouldInstall) {
         Write-Step "Installing ChatGPT Desktop App via winget..."
         try {
             & winget install --id OpenAI.ChatGPT -e --accept-package-agreements --accept-source-agreements

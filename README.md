@@ -93,10 +93,10 @@ The integration process consists of 5 clear stages:
 
 | Step | Stage | Description |
 |:---:|:---|:---|
-| **Step 1** | **Prerequisites** | Verify Node.js, npm, Git, Python, and install Codex CLI (`@openai/codex`). |
+| **Step 1** | **Prerequisites** | Verify Node.js, npm, Git, Python, and install Codex CLI (`@openai/codex`). *(IBMers: Install VS Code via `PC@IBM` / `Mac@IBM`)* |
 | **Step 2** | **ICA 2.0 Portal** | Access Essentials Portal and generate a dedicated **Codex Coding Agent API Key**. |
 | **Step 3** | **Configuration** | Deploy `ica-models.json`, update `config.toml`, and store `ICA_API_KEY` securely. |
-| **Step 4** | **Client Setup** | Install VS Code Extension (`OpenAI.chatgpt`) and (optional) ChatGPT Desktop App. |
+| **Step 4** | **Client Setup** | Install VS Code Extension (`OpenAI.chatgpt`) and (optional) ChatGPT Desktop App. *(IBM Workstations: VS Code from `PC@IBM` / `Mac@IBM`)* |
 | **Step 5** | **Verification & Testing** | Run the 30-second CLI test, VS Code `hello.py` test prompt, and desktop validation. |
 
 ---
