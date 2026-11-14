@@ -175,6 +175,13 @@ check_cmd "Python 3" "python3"
 check_cmd "VS Code" "code" "IBMers: Install via official 'Mac@IBM' internal software catalog"
 check_cmd "Codex CLI" "codex"
 
+# Missing prerequisites installable via Homebrew.
+# VS Code is intentionally excluded: IBM-managed machines must install it via Mac@IBM.
+MISSING_BREW=()
+command -v git >/dev/null 2>&1 || MISSING_BREW+=(git)
+if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then MISSING_BREW+=(node); fi
+command -v python3 >/dev/null 2>&1 || MISSING_BREW+=(python)
+
 # Check existing items
 has_catalog=false; [ -f "$CATALOG_JSON_FILE" ] && has_catalog=true
 has_config=false; [ -f "$CONFIG_FILE" ] && has_config=true
@@ -205,6 +212,14 @@ echo -e "\n${WHITE} 3. Secret & Environment Management:${NC}"
 echo -e "    - Secret File : $ENV_FILE (Will store ICA_API_KEY with chmod 600 permissions$([ "$has_env" = true ] && echo ', Auto-Backup offered'))"
 
 echo -e "\n${WHITE} 4. Process & Package Management:${NC}"
+if [ ${#MISSING_BREW[@]} -gt 0 ]; then
+    echo -e "    - Prerequisites: Will offer to install via brew: ${MISSING_BREW[*]}"
+else
+    echo -e "    - Prerequisites: Git, Node.js, npm and Python already installed"
+fi
+if ! command -v code >/dev/null 2>&1; then
+    echo -e "    - VS Code     : Missing - install manually via 'Mac@IBM' (not installed by this script)"
+fi
 if ! command -v codex >/dev/null 2>&1; then
     echo -e "    - Software    : Will offer to install @openai/codex globally via npm"
 else
@@ -229,6 +244,21 @@ fi
 if ! ask_approval "Do you want to proceed with executing the planned setup actions?" true; then
     echo -e "\n${YELLOW}[WARN] Setup cancelled by user. No files or settings were modified.${NC}\n"
     exit 0
+fi
+
+# 2b. Install missing prerequisites (Git, Node.js/npm, Python) via Homebrew
+if [ ${#MISSING_BREW[@]} -gt 0 ]; then
+    if command -v brew >/dev/null 2>&1; then
+        for formula in "${MISSING_BREW[@]}"; do
+            if ask_approval "$formula is missing. Install it via brew now?" true; then
+                echo "Running: brew install $formula"
+                brew install "$formula" || echo -e " ${YELLOW}[WARN]${NC} brew could not install $formula. Install it manually and re-run this script."
+            fi
+        done
+        hash -r
+    else
+        echo -e " ${YELLOW}[WARN]${NC} Homebrew not found. Install it from https://brew.sh (or use apt/dnf on Linux) to install: ${MISSING_BREW[*]}"
+    fi
 fi
 
 # 3. Fix npm permissions if needed

@@ -182,6 +182,20 @@ if (-not $CodexVer) {
     Write-WarningMsg "Codex CLI (@openai/codex) is not currently installed."
 }
 
+# Missing prerequisites that can be installed automatically via winget.
+# VS Code is intentionally excluded: IBM-managed machines must install it via PC@IBM / Mac@IBM.
+$WingetPackages = [ordered]@{
+    "Git"     = "Git.Git"
+    "Node.js" = "OpenJS.NodeJS.LTS"
+    "Python"  = "Python.Python.3.14"
+}
+$MissingPrereqs = @()
+foreach ($Tool in $WingetPackages.Keys) {
+    if (-not $ToolStatus[$Tool]) { $MissingPrereqs += $Tool }
+}
+# npm ships with Node.js, so a missing npm also requires installing Node.js LTS
+if (-not $ToolStatus["npm"] -and $MissingPrereqs -notcontains "Node.js") { $MissingPrereqs += "Node.js" }
+
 # Check running background daemons
 $RunningDaemons = @()
 try {
@@ -489,6 +503,14 @@ Write-Host "    - Secret File : $EnvFile (Will store ICA_API_KEY with owner-only
 Write-Host "    - Environment : Will register ICA_API_KEY in Windows User Environment variables" -ForegroundColor Gray
 
 Write-Host "`n 4. Process & Extension Management:" -ForegroundColor White
+if ($MissingPrereqs.Count -gt 0) {
+    Write-Host "    - Prerequisites: Will offer to install via winget: $($MissingPrereqs -join ', ')" -ForegroundColor Yellow
+} else {
+    Write-Host "    - Prerequisites: Git, Node.js, npm and Python already installed" -ForegroundColor Gray
+}
+if (-not $ToolStatus["VS Code"]) {
+    Write-Host "    - VS Code     : Missing - install manually via 'PC@IBM' (not installed by this script)" -ForegroundColor Yellow
+}
 if (-not $CodexVer) {
     Write-Host "    - Software    : Will offer to install @openai/codex globally via npm" -ForegroundColor Yellow
 } else {
@@ -526,6 +548,39 @@ $Proceed = Ask-UserApproval "Do you want to proceed with executing the planned s
 if (-not $Proceed) {
     Write-WarningMsg "Setup cancelled by user. No files or settings were modified."
     exit 0
+}
+
+# ------------------------------------------------------------------------------
+# STEP 0: Install missing prerequisites (Git, Node.js/npm, Python) via winget
+# ------------------------------------------------------------------------------
+if ($MissingPrereqs.Count -gt 0) {
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        foreach ($Tool in $MissingPrereqs) {
+            $PackageId = $WingetPackages[$Tool]
+            if (Ask-UserApproval "$Tool is missing. Install $PackageId via winget now?" $true) {
+                Write-Step "Installing $Tool ($PackageId) via winget..."
+                try {
+                    & winget install --id $PackageId -e --accept-package-agreements --accept-source-agreements
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Success "$Tool installed successfully."
+                    } else {
+                        Write-WarningMsg "winget could not install $Tool (exit code $LASTEXITCODE). Install it manually and re-run this script."
+                    }
+                } catch {
+                    Write-WarningMsg "Could not invoke winget for ${Tool}: $_"
+                }
+            }
+        }
+        # Reload PATH so newly installed tools (node, npm, git) are visible in this session
+        $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path', 'User')
+        foreach ($Cmd in @('git', 'node', 'npm')) {
+            if (-not (Get-Command $Cmd -ErrorAction SilentlyContinue)) {
+                Write-WarningMsg "$Cmd is still not on PATH. Open a new terminal after setup completes."
+            }
+        }
+    } else {
+        Write-WarningMsg "winget is not available. Install manually: Git (https://git-scm.com/), Node.js LTS (https://nodejs.org/), Python (https://www.python.org/)."
+    }
 }
 
 # ------------------------------------------------------------------------------
