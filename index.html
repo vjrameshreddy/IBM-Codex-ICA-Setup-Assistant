@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IBM ICA + Codex Interactive Setup Assistant</title>
+  <title>IBM ICA (IBM Consulting Advantage) + Codex Integration Toolkit</title>
   <style>
     :root {
       --ibm-blue-60: #0f62fe;
@@ -728,9 +728,10 @@
     <div class="badge-bar">
       <span class="badge ibm">IBM Consulting</span>
       <span class="badge ica">ICA 2.0 Integration</span>
-      <span class="badge guide">Setup Assistant</span>
+      <span class="badge guide">v2.0.0</span>
+      <span class="badge guide">Integration Toolkit</span>
     </div>
-    <h1>IBM ICA + Codex Setup Assistant</h1>
+    <h1>IBM ICA (IBM Consulting Advantage) + Codex Integration Toolkit</h1>
     <p>Configure OpenAI Codex (CLI, VS Code extension, and ChatGPT desktop) to connect securely with IBM Consulting Advantage models.</p>
   </header>
 
@@ -933,9 +934,12 @@
               <span><span class="os-win">PowerShell</span><span class="os-mac">Terminal</span></span>
               <button class="copy-btn" onclick="copyCode('auto-post-test-cmds')">📋 Copy Command</button>
             </div>
-            <pre id="auto-post-test-cmds" class="os-win">cd "$HOME\codex-ica-test"
+            <pre id="auto-post-test-cmds" class="os-win">$env:ICA_API_KEY = [System.Environment]::GetEnvironmentVariable('ICA_API_KEY', 'User')
+New-Item -ItemType Directory -Force "$HOME\codex-ica-test" | Out-Null
+cd "$HOME\codex-ica-test"
 codex</pre>
-            <pre id="auto-post-test-cmds-mac" class="os-mac" style="display:none;">cd "$HOME/codex-ica-test"
+            <pre id="auto-post-test-cmds-mac" class="os-mac" style="display:none;">mkdir -p ~/codex-ica-test
+cd ~/codex-ica-test
 codex</pre>
           </div>
 

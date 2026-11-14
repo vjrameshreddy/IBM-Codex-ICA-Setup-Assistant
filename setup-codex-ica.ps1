@@ -1,5 +1,6 @@
 # ==============================================================================
 # IBM ICA (IBM Consulting Advantage) + Codex Automated Setup Script for Windows
+# Version: 2.0.0
 # ==============================================================================
 [CmdletBinding()]
 param(

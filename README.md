@@ -1,5 +1,9 @@
 # IBM ICA (IBM Consulting Advantage) + Codex Integration Toolkit
 
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-informational.svg)
+
 A comprehensive setup, automation, and guidance toolkit to configure **OpenAI Codex** (CLI, Visual Studio Code extension, and ChatGPT desktop app) to connect securely with **IBM Consulting Advantage (ICA 2.0)** on **Windows** and **macOS (Apple Silicon)**.
 
 ---
@@ -8,10 +12,13 @@ A comprehensive setup, automation, and guidance toolkit to configure **OpenAI Co
 
 | File | Description |
 | :--- | :--- |
-| [**`index.html`**](index.html) | **Interactive Web Setup Assistant** — A visual, step-by-step assistant for non-technical users and developers with an OS toggle, live config generator, and troubleshooting guide. |
-| [**`setup-codex-ica.ps1`**](setup-codex-ica.ps1) | **Windows Automation Script** — Automated PowerShell setup (directory scaffolding, BOM-free model catalog creation, TOML merging, secure key prompt, and NTFS permissions). |
-| [**`setup-codex-ica.sh`**](setup-codex-ica.sh) | **macOS / Linux Automation Script** — Automated Shell script (npm global prefix fix, model catalog creation, TOML merging, and `chmod 600`). |
+| [**`index.html`**](index.html) | **Interactive Web Integration Toolkit** (`v2.0.0`) — A visual, step-by-step assistant for non-technical users and developers with an OS toggle, live config generator, and troubleshooting guide. |
+| [**`setup-codex-ica.ps1`**](setup-codex-ica.ps1) | **Windows Automation Script** (`v2.0.0`) — Automated PowerShell setup (directory scaffolding, BOM-free model catalog creation, TOML merging, secure key prompt, and NTFS permissions). |
+| [**`setup-codex-ica.sh`**](setup-codex-ica.sh) | **macOS / Linux Automation Script** (`v2.0.0`) — Automated Shell script (npm global prefix fix, model catalog creation, TOML merging, and `chmod 600`). |
 | [**`ica-models.json`**](ica-models.json) | **ICA Model Catalog** — Complete, valid JSON definition for all 6 ICA models (`gpt-advantage-assist`, `gpt-5.6-sol`, `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.4`, `gpt-5.1`). |
+| [**`RELEASE_NOTES.md`**](RELEASE_NOTES.md) | **Release Notes & Security Assessment** — Complete version history, security vulnerability audit, and filesystem migration records. |
+| [**`plan.md`**](plan.md) | **Architecture & Development Plan** — System architecture, client integration boundaries, and maintenance strategy. |
+| [**`AGENTS.md`**](AGENTS.md) | **Engineering & Agent Rules** — Non-obvious project knowledge, critical gotchas, and execution commands. |
 
 ---
 
@@ -71,7 +78,7 @@ When existing files (`config.toml`, `.env`, `ica-models.json`) are detected, the
 
 ---
 
-## 🌐 Interactive Web Setup Assistant
+## 🌐 Interactive Web Integration Toolkit
 
 For a guided, visual walkthrough tailored for non-technical users:
 1. Double-click or open [`index.html`](index.html) in any web browser.
@@ -98,10 +105,21 @@ The integration process consists of 5 clear stages:
 
 #### 5.1 30-Second Terminal Test (CLI)
 Open PowerShell or Terminal and run:
-```powershell
-cd "$HOME\codex-ica-test"
-codex
-```
+
+- **Windows (PowerShell)**:
+  ```powershell
+  $env:ICA_API_KEY = [System.Environment]::GetEnvironmentVariable('ICA_API_KEY', 'User')
+  New-Item -ItemType Directory -Force "$HOME\codex-ica-test" | Out-Null
+  cd "$HOME\codex-ica-test"
+  codex
+  ```
+
+- **macOS / Linux (Terminal)**:
+  ```bash
+  mkdir -p ~/codex-ica-test
+  cd ~/codex-ica-test
+  codex
+  ```
 1. Type `/status` &rarr; verify **`provider: ica`** and **`model: gpt-advantage-assist`**.
 2. Send safe test prompt:
    ```text
